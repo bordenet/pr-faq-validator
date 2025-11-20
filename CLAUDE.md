@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Go-based CLI tool that analyzes PR-FAQ (Press Release - Frequently Asked Questions) documents using a hybrid approach: deterministic rule-based scoring (100% of numerical score) plus optional OpenAI GPT-4 qualitative feedback. The tool provides comprehensive quality scoring, interactive terminal UI, and detailed improvement recommendations.
+This is a Go-based CLI tool that analyzes PR-FAQ (Press Release - Frequently Asked Questions) documents using deterministic rule-based scoring (100% of numerical score) plus optional OpenAI GPT-4 qualitative feedback. The tool provides quality scoring, interactive terminal UI, and improvement recommendations.
 
 ## Development Commands
 
@@ -86,21 +86,20 @@ The codebase follows a clean modular structure:
 
 ## Recent Updates
 
-### Session Summary (August 2025)
-- **Fixed TUI alignment issues**: Resolved emoji rendering problems in warning boxes
-- **Enhanced README.md**: Simplified structure, updated sample document references
-- **Created high-quality example**: `example_prfaq_1.md` scoring 77/100 with:
-  - Perfect headline scoring (10/10)
-  - Complete newsworthy hook (15/15)
-  - Multiple high-scoring customer quotes with quantitative metrics
-  - Comprehensive company information and structured sections
-- **Added quote count feedback**: Documents with >4 quotes now get guidance to limit to 3-4 focused testimonials
+### Recent Updates (November 2025)
+- Fixed TUI alignment issues with emoji rendering
+- Enhanced README with clearer structure
+- Created high-quality example document (`example_prfaq_1.md`) scoring 77/100
+- Added quote count feedback for documents with excessive quotes
+- Implemented comprehensive Go linting infrastructure with golangci-lint
+- Added pre-commit hooks for code quality enforcement
+- Achieved 76%+ test coverage with comprehensive unit tests
 
-### Key Architectural Decisions
-- **Hybrid scoring approach**: 100% deterministic algorithms for consistency, AI for insights
-- **Interactive-first design**: TUI as primary interface, legacy modes for compatibility
-- **Flexible document parsing**: Supports various header styles and naming conventions
-- **Comprehensive feedback**: Detailed breakdowns help teams improve document quality
+### Architectural Decisions
+- Deterministic scoring (100%) for consistency, optional AI for qualitative insights
+- Interactive TUI as primary interface, with legacy stdout and markdown report modes
+- Flexible document parsing supporting various header styles
+- Modular structure with clear separation of concerns
 
 ## Testing
 

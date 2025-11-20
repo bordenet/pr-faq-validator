@@ -4,7 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/bordenet/pr-faq-validator/internal/llm"
@@ -13,6 +13,15 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+var logger *slog.Logger
+
+func init() {
+	// Initialize structured logger
+	logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+}
+
 func main() {
 	inputFile := flag.String("file", "", "Path to the PR-FAQ markdown file")
 	reportFile := flag.String("report", "", "Optional: Output markdown report file (default: interactive TUI)")
@@ -20,12 +29,16 @@ func main() {
 	flag.Parse()
 
 	if *inputFile == "" {
-		log.Fatal("Please provide a markdown file with -file")
+		logger.Error("missing required flag", "flag", "file")
+		fmt.Fprintln(os.Stderr, "Please provide a markdown file with -file")
+		os.Exit(1)
 	}
 
 	sections, err := parser.ParsePRFAQ(*inputFile)
 	if err != nil {
-		log.Fatalf("Failed to parse PR-FAQ: %v", err)
+		logger.Error("failed to parse PR-FAQ", "file", *inputFile, "error", err)
+		fmt.Fprintf(os.Stderr, "Failed to parse PR-FAQ: %v\n", err)
+		os.Exit(1)
 	}
 
 	// If markdown report is requested, generate and save it
@@ -33,8 +46,11 @@ func main() {
 		report := parser.GenerateMarkdownReport(sections, sections.PRScore)
 		err := writeReportToFile(*reportFile, report)
 		if err != nil {
-			log.Fatalf("Failed to write report: %v", err)
+			logger.Error("failed to write report", "file", *reportFile, "error", err)
+			fmt.Fprintf(os.Stderr, "Failed to write report: %v\n", err)
+			os.Exit(1)
 		}
+		logger.Info("report generated", "file", *reportFile, "score", sections.PRScore.OverallScore)
 		fmt.Printf("Report generated: %s\n", *reportFile)
 		fmt.Printf("Overall Score: %d/100\n", sections.PRScore.OverallScore)
 		return
@@ -60,7 +76,9 @@ func runInteractiveTUI(sections parser.SpecSections) {
 
 	// Run the TUI
 	if _, err := p.Run(); err != nil {
-		log.Fatalf("Error running TUI: %v", err)
+		logger.Error("TUI error", "error", err)
+		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -132,18 +150,22 @@ func runLegacyOutput(sections parser.SpecSections) {
 		fmt.Println("Analyzing Press Release...")
 		feedback, err := llm.AnalyzeSection("Press Release", sections.PressRelease)
 		if err != nil {
-			log.Fatalf("LLM error: %v", err)
+			logger.Warn("LLM analysis failed", "section", "Press Release", "error", err)
+			fmt.Fprintf(os.Stderr, "LLM error: %v\n", err)
+		} else {
+			fmt.Printf("== Feedback for Press Release ==\n%s\n\n", feedback.Comments)
 		}
-		fmt.Printf("== Feedback for Press Release ==\n%s\n\n", feedback.Comments)
 	}
 
 	if sections.FAQs != "" {
 		fmt.Println("Analyzing FAQs...")
 		feedback, err := llm.AnalyzeSection("FAQs", sections.FAQs)
 		if err != nil {
-			log.Fatalf("LLM error: %v", err)
+			logger.Warn("LLM analysis failed", "section", "FAQs", "error", err)
+			fmt.Fprintf(os.Stderr, "LLM error: %v\n", err)
+		} else {
+			fmt.Printf("== Feedback for FAQs ==\n%s\n\n", feedback.Comments)
 		}
-		fmt.Printf("== Feedback for FAQs ==\n%s\n\n", feedback.Comments)
 	}
 }
 
@@ -154,7 +176,7 @@ func writeReportToFile(filename, content string) error {
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
-			fmt.Printf("Warning: failed to close file: %v\n", closeErr)
+			logger.Warn("failed to close file", "file", filename, "error", closeErr)
 		}
 	}()
 
