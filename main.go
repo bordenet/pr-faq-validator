@@ -183,3 +183,4 @@ func writeReportToFile(filename, content string) error {
 	_, err = file.WriteString(content)
 	return err
 }
+// bad formatting
