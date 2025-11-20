@@ -2,20 +2,20 @@ package ui
 
 import (
 	"fmt"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
 var (
 	// Color palette
-	primaryColor    = lipgloss.Color("#7C3AED") // Purple
-	successColor    = lipgloss.Color("#10B981") // Green
-	warningColor    = lipgloss.Color("#F59E0B") // Orange
-	errorColor      = lipgloss.Color("#EF4444") // Red
-	mutedColor      = lipgloss.Color("#6B7280") // Gray
-	backgroundColor = lipgloss.Color("#1F2937") // Dark gray
-	textColor       = lipgloss.Color("#F9FAFB") // Light gray
+	primaryColor = lipgloss.Color("#7C3AED") // Purple
+	successColor = lipgloss.Color("#10B981") // Green
+	warningColor = lipgloss.Color("#F59E0B") // Orange
+	errorColor   = lipgloss.Color("#EF4444") // Red
+	mutedColor   = lipgloss.Color("#6B7280") // Gray
+	textColor    = lipgloss.Color("#F9FAFB") // Light gray
 
-	// Header styles
+	// TitleStyle is the style for the main title.
 	TitleStyle = lipgloss.NewStyle().
 			Foreground(primaryColor).
 			Bold(true).
@@ -23,28 +23,31 @@ var (
 			Align(lipgloss.Center).
 			Width(25)
 
+	// SubtitleStyle is the style for subtitles.
 	SubtitleStyle = lipgloss.NewStyle().
 			Foreground(textColor).
 			Bold(true).
 			MarginBottom(1)
 
-	// Score styles
+	// ScoreStyle is the style for high scores.
 	ScoreStyle = lipgloss.NewStyle().
 			Foreground(successColor).
 			Bold(true).
 			Padding(0, 1)
 
+	// ScoreLowStyle is the style for low scores.
 	ScoreLowStyle = lipgloss.NewStyle().
 			Foreground(errorColor).
 			Bold(true).
 			Padding(0, 1)
 
+	// ScoreMediumStyle is the style for medium scores.
 	ScoreMediumStyle = lipgloss.NewStyle().
 				Foreground(warningColor).
 				Bold(true).
 				Padding(0, 1)
 
-	// Table styles
+	// TableHeaderStyle is the style for table headers.
 	TableHeaderStyle = lipgloss.NewStyle().
 				Foreground(primaryColor).
 				Bold(true).
@@ -52,16 +55,18 @@ var (
 				BorderForeground(mutedColor).
 				Padding(0, 1)
 
+	// TableRowStyle is the style for table rows.
 	TableRowStyle = lipgloss.NewStyle().
 			Foreground(textColor).
 			Padding(0, 1)
 
+	// TableRowAltStyle is the style for alternate table rows.
 	TableRowAltStyle = lipgloss.NewStyle().
 				Foreground(textColor).
 				Background(lipgloss.Color("#374151")).
 				Padding(0, 1)
 
-	// Progress bar styles
+	// ProgressBarStyle is the style for progress bars.
 	ProgressBarStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(mutedColor).
@@ -71,10 +76,11 @@ var (
 				Background(successColor).
 				Foreground(lipgloss.Color("#000000"))
 
+	// ProgressEmptyStyle is the style for empty progress bar sections.
 	ProgressEmptyStyle = lipgloss.NewStyle().
 				Background(mutedColor)
 
-	// Card styles
+	// CardStyle is the style for card containers.
 	CardStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(mutedColor).
@@ -87,13 +93,14 @@ var (
 				Padding(1, 2).
 				MarginBottom(1)
 
+	// WarningCardStyle is the style for warning cards.
 	WarningCardStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(warningColor).
 				Padding(1, 2).
 				MarginBottom(1)
 
-	// List styles
+	// ListItemStyle is the style for list items.
 	ListItemStyle = lipgloss.NewStyle().
 			Foreground(textColor).
 			PaddingLeft(2)
@@ -102,16 +109,17 @@ var (
 				Foreground(successColor).
 				PaddingLeft(2)
 
+	// WarningListItemStyle is the style for warning list items.
 	WarningListItemStyle = lipgloss.NewStyle().
 				Foreground(warningColor).
 				PaddingLeft(2)
 
-	// Status styles
+	// StatusStyle is the style for status messages.
 	StatusStyle = lipgloss.NewStyle().
 			Foreground(mutedColor).
 			Italic(true)
 
-	// Help styles
+	// HelpStyle is the style for help text.
 	HelpStyle = lipgloss.NewStyle().
 			Foreground(mutedColor).
 			Padding(1, 2).
@@ -119,37 +127,37 @@ var (
 			BorderForeground(mutedColor).
 			MarginTop(1)
 
-	// Tab styles
+	// ActiveTabStyle is the style for the active tab.
 	ActiveTabStyle = lipgloss.NewStyle().
 			Foreground(primaryColor).
 			Bold(true).
 			Padding(0, 2).
 			Border(lipgloss.Border{
-				Top:         "─",
-				Bottom:      "",
-				Left:        "│",
-				Right:       "│",
-				TopLeft:     "╭",
-				TopRight:    "╮",
-				BottomLeft:  "│",
-				BottomRight: "│",
-			}).
-			BorderForeground(primaryColor)
+			Top:         "─",
+			Bottom:      "",
+			Left:        "│",
+			Right:       "│",
+			TopLeft:     "╭",
+			TopRight:    "╮",
+			BottomLeft:  "│",
+			BottomRight: "│",
+		}).
+		BorderForeground(primaryColor)
 
 	InactiveTabStyle = lipgloss.NewStyle().
 				Foreground(mutedColor).
 				Padding(0, 2).
 				Border(lipgloss.Border{
-					Top:         "─",
-					Bottom:      "",
-					Left:        "│",
-					Right:       "│",
-					TopLeft:     "╭",
-					TopRight:    "╮",
-					BottomLeft:  "│",
-					BottomRight: "│",
-				}).
-				BorderForeground(mutedColor)
+			Top:         "─",
+			Bottom:      "",
+			Left:        "│",
+			Right:       "│",
+			TopLeft:     "╭",
+			TopRight:    "╮",
+			BottomLeft:  "│",
+			BottomRight: "│",
+		}).
+		BorderForeground(mutedColor)
 )
 
 // GetScoreStyle returns the appropriate style based on score
@@ -162,28 +170,28 @@ func GetScoreStyle(score int) lipgloss.Style {
 	return ScoreLowStyle
 }
 
-// CreateProgressBar creates a styled progress bar
-func CreateProgressBar(current, max int, width int) string {
-	if max == 0 {
+// CreateProgressBar creates a styled progress bar.
+func CreateProgressBar(current, maxScore int, width int) string {
+	if maxScore == 0 {
 		return ""
 	}
-	
-	percentage := float64(current) / float64(max)
+
+	percentage := float64(current) / float64(maxScore)
 	fillWidth := int(float64(width) * percentage)
 	emptyWidth := width - fillWidth
-	
+
 	fill := ProgressFillStyle.Width(fillWidth).Render("")
 	empty := ProgressEmptyStyle.Width(emptyWidth).Render("")
-	
+
 	return ProgressBarStyle.Render(fill + empty)
 }
 
-// FormatScore formats a score with appropriate styling
-func FormatScore(score, max int) string {
+// FormatScore formats a score with appropriate styling.
+func FormatScore(score, maxScore int) string {
 	style := GetScoreStyle(score)
-	return style.Render(lipgloss.JoinHorizontal(lipgloss.Center, 
+	return style.Render(lipgloss.JoinHorizontal(lipgloss.Center,
 		lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf("%d", score)),
 		"/",
-		fmt.Sprintf("%d", max),
+		fmt.Sprintf("%d", maxScore),
 	))
 }

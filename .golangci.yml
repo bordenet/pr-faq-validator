@@ -1,0 +1,30 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Advanced static analysis
+    - unused        # Check for unused code
+    - misspell      # Check for misspelled words
+    - gosec         # Security-focused linter
+    - gocyclo       # Check cyclomatic complexity
+    - errorlint     # Check error wrapping
+  disable:
+    - revive        # Disabled: too many style issues
+    - gocritic      # Disabled: too many style issues
+    - godot         # Disabled: comment period requirement
+
+formatters:
+  enable:
+    - gofmt         # Check formatting
+    - goimports     # Check import formatting
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+

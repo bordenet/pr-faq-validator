@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+################################################################################
+# Pre-Commit Hook
+################################################################################
+# PURPOSE: Run automated checks before each commit
+# - Check for compiled binaries
+# - Run Go formatting checks
+# - Run quick linting
+# - Run tests
+################################################################################
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Check for binaries first
+if [ -f .husky/check-binaries ]; then
+    ./.husky/check-binaries
+fi
+
+# Run quick test suite (includes linting)
+echo ""
+echo "🧪 Running tests and linting..."
+./scripts/test.sh --quick
+
+echo ""
+echo "✅ Pre-commit checks passed!"
+

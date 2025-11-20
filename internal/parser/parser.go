@@ -1,3 +1,4 @@
+// Package parser provides functionality for parsing and analyzing PR-FAQ documents.
 package parser
 
 import (
@@ -9,6 +10,7 @@ import (
 	"time"
 )
 
+// SpecSections represents the parsed sections of a PR-FAQ document.
 type SpecSections struct {
 	Title         string
 	PressRelease  string
@@ -18,6 +20,7 @@ type SpecSections struct {
 	PRScore       *PRScore
 }
 
+// PRScore contains the overall quality score and metrics for a press release.
 type PRScore struct {
 	TotalQuotes       int
 	QuotesWithMetrics int
@@ -26,6 +29,7 @@ type PRScore struct {
 	QualityBreakdown  PRQualityBreakdown
 }
 
+// MetricInfo contains details about metrics found in a customer quote.
 type MetricInfo struct {
 	Quote       string
 	Metrics     []string
@@ -33,33 +37,34 @@ type MetricInfo struct {
 	Score       int      // 0-10 for this quote
 }
 
+// PRQualityBreakdown provides detailed scoring across multiple quality dimensions.
 type PRQualityBreakdown struct {
 	// Structure & Hook (30 points) - increased to accommodate release date
-	HeadlineScore    int    // 0-10: Clear, compelling headline
-	HookScore        int    // 0-15: Newsworthy hook with specificity
-	ReleaseDateScore int    // 0-5: Release date in top lines
-	
+	HeadlineScore    int // 0-10: Clear, compelling headline
+	HookScore        int // 0-15: Newsworthy hook with specificity
+	ReleaseDateScore int // 0-5: Release date in top lines
+
 	// Content Quality (35 points)
-	FiveWsScore      int    // 0-15: Who, what, when, where, why coverage
-	CredibilityScore int    // 0-10: Supporting details, data, context
-	StructureScore   int    // 0-10: Inverted pyramid structure
-	
+	FiveWsScore      int // 0-15: Who, what, when, where, why coverage
+	CredibilityScore int // 0-10: Supporting details, data, context
+	StructureScore   int // 0-10: Inverted pyramid structure
+
 	// Professional Quality (20 points) - reduced to maintain 100 total
-	ToneScore        int    // 0-10: Professional but readable
-	FluffScore       int    // 0-10: Absence of marketing fluff/hype (reduced from 15)
-	
+	ToneScore  int // 0-10: Professional but readable
+	FluffScore int // 0-10: Absence of marketing fluff/hype (reduced from 15)
+
 	// Customer Evidence (15 points) - existing quote scoring
-	QuoteScore       int    // 0-15: Quality customer quotes with metrics
-	
+	QuoteScore int // 0-15: Quality customer quotes with metrics
+
 	// Detailed feedback
-	Issues           []string
-	Strengths        []string
+	Issues    []string
+	Strengths []string
 }
 
-// GenerateMarkdownReport creates a comprehensive markdown report with scoring table
+// GenerateMarkdownReport creates a comprehensive markdown report with scoring table.
 func GenerateMarkdownReport(sections *SpecSections, prScore *PRScore) string {
 	var report strings.Builder
-	
+
 	// Header
 	report.WriteString("# PR-FAQ Analysis Report\n\n")
 	if sections.Title != "" {
@@ -67,7 +72,7 @@ func GenerateMarkdownReport(sections *SpecSections, prScore *PRScore) string {
 	}
 	report.WriteString("**Analysis Date:** " + time.Now().Format("January 2, 2006") + "\n")
 	report.WriteString("**Overall Score:** " + fmt.Sprintf("%d/100", prScore.OverallScore) + "\n\n")
-	
+
 	// Executive Summary
 	report.WriteString("## Executive Summary\n\n")
 	if prScore.OverallScore >= 80 {
@@ -79,60 +84,60 @@ func GenerateMarkdownReport(sections *SpecSections, prScore *PRScore) string {
 	} else {
 		report.WriteString("🔴 **Major Issues** - This press release needs substantial revision to meet professional standards.\n\n")
 	}
-	
+
 	// Results Table
 	breakdown := prScore.QualityBreakdown
 	report.WriteString("## Scoring Results\n\n")
 	report.WriteString("| Category | Score | Max | Status | Priority |\n")
 	report.WriteString("|----------|-------|-----|--------|----------|\n")
-	
+
 	// Structure & Hook (now 30 points)
 	structureTotal := breakdown.HeadlineScore + breakdown.HookScore + breakdown.ReleaseDateScore
 	structureStatus := getScoreStatus(structureTotal, 30)
 	structurePriority := getPriority(structureTotal, 30)
-	report.WriteString(fmt.Sprintf("| **Structure & Hook** | %d | 30 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| **Structure & Hook** | %d | 30 | %s | %s |\n",
 		structureTotal, structureStatus, structurePriority))
-	report.WriteString(fmt.Sprintf("| ├─ Headline Quality | %d | 10 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| ├─ Headline Quality | %d | 10 | %s | %s |\n",
 		breakdown.HeadlineScore, getScoreStatus(breakdown.HeadlineScore, 10), getPriority(breakdown.HeadlineScore, 10)))
-	report.WriteString(fmt.Sprintf("| ├─ Newsworthy Hook | %d | 15 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| ├─ Newsworthy Hook | %d | 15 | %s | %s |\n",
 		breakdown.HookScore, getScoreStatus(breakdown.HookScore, 15), getPriority(breakdown.HookScore, 15)))
-	report.WriteString(fmt.Sprintf("| └─ Release Date | %d | 5 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| └─ Release Date | %d | 5 | %s | %s |\n",
 		breakdown.ReleaseDateScore, getScoreStatus(breakdown.ReleaseDateScore, 5), getPriority(breakdown.ReleaseDateScore, 5)))
-	
+
 	// Content Quality
 	contentTotal := breakdown.FiveWsScore + breakdown.CredibilityScore + breakdown.StructureScore
 	contentStatus := getScoreStatus(contentTotal, 35)
 	contentPriority := getPriority(contentTotal, 35)
-	report.WriteString(fmt.Sprintf("| **Content Quality** | %d | 35 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| **Content Quality** | %d | 35 | %s | %s |\n",
 		contentTotal, contentStatus, contentPriority))
-	report.WriteString(fmt.Sprintf("| ├─ 5 Ws Coverage | %d | 15 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| ├─ 5 Ws Coverage | %d | 15 | %s | %s |\n",
 		breakdown.FiveWsScore, getScoreStatus(breakdown.FiveWsScore, 15), getPriority(breakdown.FiveWsScore, 15)))
-	report.WriteString(fmt.Sprintf("| ├─ Credibility | %d | 10 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| ├─ Credibility | %d | 10 | %s | %s |\n",
 		breakdown.CredibilityScore, getScoreStatus(breakdown.CredibilityScore, 10), getPriority(breakdown.CredibilityScore, 10)))
-	report.WriteString(fmt.Sprintf("| └─ Structure | %d | 10 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| └─ Structure | %d | 10 | %s | %s |\n",
 		breakdown.StructureScore, getScoreStatus(breakdown.StructureScore, 10), getPriority(breakdown.StructureScore, 10)))
-	
+
 	// Professional Quality (now 20 points)
 	professionalTotal := breakdown.ToneScore + breakdown.FluffScore
 	professionalStatus := getScoreStatus(professionalTotal, 20)
 	professionalPriority := getPriority(professionalTotal, 20)
-	report.WriteString(fmt.Sprintf("| **Professional Quality** | %d | 20 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| **Professional Quality** | %d | 20 | %s | %s |\n",
 		professionalTotal, professionalStatus, professionalPriority))
-	report.WriteString(fmt.Sprintf("| ├─ Tone & Readability | %d | 10 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| ├─ Tone & Readability | %d | 10 | %s | %s |\n",
 		breakdown.ToneScore, getScoreStatus(breakdown.ToneScore, 10), getPriority(breakdown.ToneScore, 10)))
-	report.WriteString(fmt.Sprintf("| └─ Fluff Avoidance | %d | 10 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| └─ Fluff Avoidance | %d | 10 | %s | %s |\n",
 		breakdown.FluffScore, getScoreStatus(breakdown.FluffScore, 10), getPriority(breakdown.FluffScore, 10)))
-	
+
 	// Customer Evidence
-	report.WriteString(fmt.Sprintf("| **Customer Evidence** | %d | 15 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| **Customer Evidence** | %d | 15 | %s | %s |\n",
 		breakdown.QuoteScore, getScoreStatus(breakdown.QuoteScore, 15), getPriority(breakdown.QuoteScore, 15)))
-	report.WriteString(fmt.Sprintf("| └─ Quote Quality | %d | 15 | %s | %s |\n", 
+	report.WriteString(fmt.Sprintf("| └─ Quote Quality | %d | 15 | %s | %s |\n",
 		breakdown.QuoteScore, getScoreStatus(breakdown.QuoteScore, 15), getPriority(breakdown.QuoteScore, 15)))
-	
+
 	// Total
-	report.WriteString(fmt.Sprintf("| **TOTAL SCORE** | **%d** | **100** | %s | - |\n\n", 
+	report.WriteString(fmt.Sprintf("| **TOTAL SCORE** | **%d** | **100** | %s | - |\n\n",
 		prScore.OverallScore, getOverallStatus(prScore.OverallScore)))
-	
+
 	// Strengths
 	if len(breakdown.Strengths) > 0 {
 		report.WriteString("## ✅ Strengths\n\n")
@@ -141,7 +146,7 @@ func GenerateMarkdownReport(sections *SpecSections, prScore *PRScore) string {
 		}
 		report.WriteString("\n")
 	}
-	
+
 	// Priority Improvements
 	report.WriteString("## 🎯 Priority Improvements\n\n")
 	improvements := getPriorityImprovements(breakdown)
@@ -158,12 +163,12 @@ func GenerateMarkdownReport(sections *SpecSections, prScore *PRScore) string {
 			report.WriteString("\n")
 		}
 	}
-	
+
 	// All Issues
 	if len(breakdown.Issues) > 0 {
 		report.WriteString("## ⚠️ Detailed Issues to Address\n\n")
 		categoryIssues := categorizeIssues(breakdown.Issues)
-		
+
 		for category, issues := range categoryIssues {
 			report.WriteString("### " + category + "\n\n")
 			for _, issue := range issues {
@@ -172,13 +177,13 @@ func GenerateMarkdownReport(sections *SpecSections, prScore *PRScore) string {
 			report.WriteString("\n")
 		}
 	}
-	
+
 	// Quote Analysis
 	if len(prScore.MetricDetails) > 0 {
 		report.WriteString("## 📊 Customer Quote Analysis\n\n")
-		report.WriteString(fmt.Sprintf("**Total Quotes:** %d | **Quotes with Metrics:** %d\n\n", 
+		report.WriteString(fmt.Sprintf("**Total Quotes:** %d | **Quotes with Metrics:** %d\n\n",
 			prScore.TotalQuotes, prScore.QuotesWithMetrics))
-		
+
 		for i, detail := range prScore.MetricDetails {
 			score := detail.Score
 			scoreEmoji := "🔴"
@@ -187,10 +192,10 @@ func GenerateMarkdownReport(sections *SpecSections, prScore *PRScore) string {
 			} else if score >= 4 {
 				scoreEmoji = "🟡"
 			}
-			
+
 			report.WriteString(fmt.Sprintf("### Quote %d %s (%d/10 points)\n\n", i+1, scoreEmoji, score))
 			report.WriteString("> \"" + detail.Quote + "\"\n\n")
-			
+
 			if len(detail.Metrics) > 0 {
 				report.WriteString("**Metrics Detected:**\n")
 				for j, metric := range detail.Metrics {
@@ -207,17 +212,17 @@ func GenerateMarkdownReport(sections *SpecSections, prScore *PRScore) string {
 			report.WriteString("\n")
 		}
 	}
-	
+
 	// Footer
 	report.WriteString("---\n\n")
 	report.WriteString("*Report generated by pr-faq-validator*\n")
 	report.WriteString("*For questions about scoring methodology, see the documentation*\n")
-	
+
 	return report.String()
 }
 
-func getScoreStatus(score, max int) string {
-	percentage := float64(score) / float64(max)
+func getScoreStatus(score, maxScore int) string {
+	percentage := float64(score) / float64(maxScore)
 	if percentage >= 0.8 {
 		return "🟢 Excellent"
 	} else if percentage >= 0.6 {
@@ -229,8 +234,8 @@ func getScoreStatus(score, max int) string {
 	}
 }
 
-func getPriority(score, max int) string {
-	percentage := float64(score) / float64(max)
+func getPriority(score, maxScore int) string {
+	percentage := float64(score) / float64(maxScore)
 	if percentage >= 0.8 {
 		return "Low"
 	} else if percentage >= 0.6 {
@@ -254,6 +259,7 @@ func getOverallStatus(score int) string {
 	}
 }
 
+// Improvement represents a suggested improvement with actionable steps.
 type Improvement struct {
 	Title  string
 	Impact string
@@ -262,7 +268,7 @@ type Improvement struct {
 
 func getPriorityImprovements(breakdown PRQualityBreakdown) []Improvement {
 	var improvements []Improvement
-	
+
 	// Critical issues (score < 40% of max)
 	if breakdown.HeadlineScore < 4 {
 		improvements = append(improvements, Improvement{
@@ -276,7 +282,7 @@ func getPriorityImprovements(breakdown PRQualityBreakdown) []Improvement {
 			},
 		})
 	}
-	
+
 	if breakdown.HookScore < 6 {
 		improvements = append(improvements, Improvement{
 			Title:  "Strengthen Opening Hook",
@@ -289,7 +295,7 @@ func getPriorityImprovements(breakdown PRQualityBreakdown) []Improvement {
 			},
 		})
 	}
-	
+
 	if breakdown.QuoteScore < 6 {
 		improvements = append(improvements, Improvement{
 			Title:  "Add Quantitative Customer Evidence",
@@ -302,7 +308,7 @@ func getPriorityImprovements(breakdown PRQualityBreakdown) []Improvement {
 			},
 		})
 	}
-	
+
 	if breakdown.FiveWsScore < 9 {
 		improvements = append(improvements, Improvement{
 			Title:  "Complete the 5 Ws",
@@ -315,7 +321,7 @@ func getPriorityImprovements(breakdown PRQualityBreakdown) []Improvement {
 			},
 		})
 	}
-	
+
 	if breakdown.FluffScore < 10 {
 		improvements = append(improvements, Improvement{
 			Title:  "Eliminate Marketing Fluff",
@@ -328,17 +334,17 @@ func getPriorityImprovements(breakdown PRQualityBreakdown) []Improvement {
 			},
 		})
 	}
-	
+
 	return improvements
 }
 
 func categorizeIssues(issues []string) map[string][]string {
 	categories := make(map[string][]string)
-	
+
 	for _, issue := range issues {
 		category := "General"
 		issueLower := strings.ToLower(issue)
-		
+
 		if strings.Contains(issueLower, "headline") || strings.Contains(issueLower, "title") {
 			category = "Headline & Title"
 		} else if strings.Contains(issueLower, "hook") || strings.Contains(issueLower, "opening") || strings.Contains(issueLower, "first sentence") {
@@ -354,24 +360,24 @@ func categorizeIssues(issues []string) map[string][]string {
 		} else if strings.Contains(issueLower, "sentence") || strings.Contains(issueLower, "readability") || strings.Contains(issueLower, "passive") {
 			category = "Writing Quality"
 		}
-		
+
 		categories[category] = append(categories[category], issue)
 	}
-	
+
 	return categories
 }
 
-// isPressReleaseContent analyzes content to determine if it looks like a press release
+// isPressReleaseContent analyzes content to determine if it looks like a press release.
 func isPressReleaseContent(content string) bool {
 	content = strings.ToLower(content)
-	
+
 	// Check for date patterns commonly found in press releases
 	datePatterns := []string{
 		`\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}`,
 		`\b\d{1,2}/\d{1,2}/\d{4}`,
 		`\b\d{4}-\d{1,2}-\d{1,2}`,
 	}
-	
+
 	for _, pattern := range datePatterns {
 		if matched, _ := regexp.MatchString(pattern, content); matched {
 			// Also check for announcement language
@@ -383,47 +389,47 @@ func isPressReleaseContent(content string) bool {
 			}
 		}
 	}
-	
+
 	// Check for press release structure indicators
 	prIndicators := []string{
-		"business wire", "pr newswire", "press release", 
+		"business wire", "pr newswire", "press release",
 		"for immediate release", "contact:", "about ",
 		"announces", "today announced", "is excited to announce",
 		"is pleased to announce", "is proud to announce",
 	}
-	
+
 	for _, indicator := range prIndicators {
 		if strings.Contains(content, indicator) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
-// isFAQSection checks if a section header indicates FAQ content
+// isFAQSection checks if a section header indicates FAQ content.
 func isFAQSection(header string) bool {
 	header = strings.ToLower(strings.TrimSpace(header))
-	
+
 	faqPatterns := []string{
-		"faq", "faqs", "frequently asked questions", 
+		"faq", "faqs", "frequently asked questions",
 		"questions and answers", "q&a", "q & a",
 		"common questions", "questions", "internal faq",
 	}
-	
+
 	for _, pattern := range faqPatterns {
 		if strings.Contains(header, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
-// isNumberedFAQQuestion checks if a section header is a numbered FAQ question
+// isNumberedFAQQuestion checks if a section header is a numbered FAQ question.
 func isNumberedFAQQuestion(header string) bool {
 	header = strings.TrimSpace(header)
-	
+
 	// Check for patterns like "1. Question here", "2. Another question", etc.
 	// Also handle variations like "1) Question" or "Q1. Question"
 	patterns := []string{
@@ -432,28 +438,28 @@ func isNumberedFAQQuestion(header string) bool {
 		`^Q\d+[\.\)]\s+.+`, // "Q1. Question" or "Q1) Question"
 		`^Question\s+\d+`,  // "Question 1"
 	}
-	
+
 	for _, pattern := range patterns {
 		if matched, _ := regexp.MatchString(pattern, header); matched {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
-// extractQuotes finds customer quotes in press release content
+// extractQuotes finds customer quotes in press release content.
 func extractQuotes(content string) []string {
 	var quotes []string
-	
+
 	// Look for quoted text patterns - use Unicode code points for curly quotes
 	quotePatterns := []string{
-		`"(.+?)"`,              // Standard double quotes
-		"\u201C(.+?)\u201D",    // Curly quotes (U+201C and U+201D)
-		`'(.+?)'`,              // Single quotes
-		"\u2018(.+?)\u2019",    // Curly single quotes (U+2018 and U+2019)
+		`"(.+?)"`,           // Standard double quotes
+		"\u201C(.+?)\u201D", // Curly quotes (U+201C and U+201D)
+		`'(.+?)'`,           // Single quotes
+		"\u2018(.+?)\u2019", // Curly single quotes (U+2018 and U+2019)
 	}
-	
+
 	for _, pattern := range quotePatterns {
 		re := regexp.MustCompile(`(?s)` + pattern) // (?s) enables multiline mode
 		matches := re.FindAllStringSubmatch(content, -1)
@@ -470,18 +476,18 @@ func extractQuotes(content string) []string {
 	return quotes
 }
 
-// detectMetricsInText finds quantitative metrics in text
+// detectMetricsInText finds quantitative metrics in text.
 func detectMetricsInText(text string) ([]string, []string) {
 	var metrics []string
 	var metricTypes []string
-	
+
 	// Percentage patterns
 	percentagePatterns := []string{
-		`\d+(?:\.\d+)?%`,                    // 50%, 12.5%
-		`\d+(?:\.\d+)?\s*percent`,           // 50 percent
+		`\d+(?:\.\d+)?%`,                       // 50%, 12.5%
+		`\d+(?:\.\d+)?\s*percent`,              // 50 percent
 		`\d+(?:\.\d+)?\s*percentage\s*points?`, // 12 percentage points
 	}
-	
+
 	for _, pattern := range percentagePatterns {
 		re := regexp.MustCompile(`(?i)` + pattern)
 		matches := re.FindAllString(text, -1)
@@ -490,14 +496,14 @@ func detectMetricsInText(text string) ([]string, []string) {
 			metricTypes = append(metricTypes, "percentage")
 		}
 	}
-	
+
 	// Ratio and multiplier patterns
 	ratioPatterns := []string{
-		`\d+x`,                             // 2x, 10x improvement
-		`\d+(?:\.\d+)?:\d+(?:\.\d+)?`,     // 2:1, 3.5:1 ratios
-		`\d+(?:\.\d+)?\s*times`,           // 3 times faster
+		`\d+x`,                        // 2x, 10x improvement
+		`\d+(?:\.\d+)?:\d+(?:\.\d+)?`, // 2:1, 3.5:1 ratios
+		`\d+(?:\.\d+)?\s*times`,       // 3 times faster
 	}
-	
+
 	for _, pattern := range ratioPatterns {
 		re := regexp.MustCompile(`(?i)` + pattern)
 		matches := re.FindAllString(text, -1)
@@ -506,15 +512,15 @@ func detectMetricsInText(text string) ([]string, []string) {
 			metricTypes = append(metricTypes, "ratio")
 		}
 	}
-	
+
 	// Absolute number patterns with business context
 	numberPatterns := []string{
-		`\$\d+(?:,\d{3})*(?:\.\d+)?(?:\s*(?:million|billion|thousand|k|m|b))?`, // $1.5M, $500K
+		`\$\d+(?:,\d{3})*(?:\.\d+)?(?:\s*(?:million|billion|thousand|k|m|b))?`,        // $1.5M, $500K
 		`\d+(?:,\d{3})*(?:\.\d+)?\s*(?:milliseconds?|seconds?|minutes?|hours?|days?)`, // 50ms, 2.5 seconds
-		`\d+(?:,\d{3})*(?:\.\d+)?\s*(?:customers?|users?|transactions?)`, // 1000 customers
-		`\d+(?:,\d{3})*(?:\.\d+)?\s*(?:basis\s*points?)`, // 200 basis points
+		`\d+(?:,\d{3})*(?:\.\d+)?\s*(?:customers?|users?|transactions?)`,              // 1000 customers
+		`\d+(?:,\d{3})*(?:\.\d+)?\s*(?:basis\s*points?)`,                              // 200 basis points
 	}
-	
+
 	for _, pattern := range numberPatterns {
 		re := regexp.MustCompile(`(?i)` + pattern)
 		matches := re.FindAllString(text, -1)
@@ -523,14 +529,14 @@ func detectMetricsInText(text string) ([]string, []string) {
 			metricTypes = append(metricTypes, "absolute")
 		}
 	}
-	
+
 	// NPS, score-based metrics
 	scorePatterns := []string{
-		`nps\s*(?:score\s*)?(?:by\s*)?\d+(?:\.\d+)?\s*points?`, // NPS by 12 points
+		`nps\s*(?:score\s*)?(?:by\s*)?\d+(?:\.\d+)?\s*points?`,                 // NPS by 12 points
 		`\d+(?:\.\d+)?\s*(?:point|points)\s*(?:improvement|increase|decrease)`, // 12 points improvement
-		`score\s*(?:of\s*)?\d+(?:\.\d+)?`,                      // score of 9.2
+		`score\s*(?:of\s*)?\d+(?:\.\d+)?`,                                      // score of 9.2
 	}
-	
+
 	for _, pattern := range scorePatterns {
 		re := regexp.MustCompile(`(?i)` + pattern)
 		matches := re.FindAllString(text, -1)
@@ -539,18 +545,18 @@ func detectMetricsInText(text string) ([]string, []string) {
 			metricTypes = append(metricTypes, "score")
 		}
 	}
-	
+
 	return metrics, metricTypes
 }
 
-// scoreQuote evaluates the quality of a customer quote based on metrics
-func scoreQuote(quote string, metrics []string, metricTypes []string) int {
+// scoreQuote evaluates the quality of a customer quote based on metrics.
+func scoreQuote(metrics []string, metricTypes []string) int {
 	if len(metrics) == 0 {
 		return 0 // No metrics = 0 points
 	}
-	
+
 	score := 2 // Base score for having any metrics
-	
+
 	// Bonus points for different metric types
 	typeBonus := make(map[string]bool)
 	for _, metricType := range metricTypes {
@@ -568,7 +574,7 @@ func scoreQuote(quote string, metrics []string, metricTypes []string) int {
 			}
 		}
 	}
-	
+
 	// Bonus for multiple metrics in one quote
 	if len(metrics) >= 2 {
 		score += 2
@@ -576,45 +582,45 @@ func scoreQuote(quote string, metrics []string, metricTypes []string) int {
 	if len(metrics) >= 3 {
 		score += 1
 	}
-	
+
 	// Cap at 10
 	if score > 10 {
 		score = 10
 	}
-	
+
 	return score
 }
 
-// analyzePRQuotes evaluates customer quotes in press release content
+// analyzePRQuotes evaluates customer quotes in press release content.
 func analyzePRQuotes(prContent string) *PRScore {
 	if prContent == "" {
 		return &PRScore{OverallScore: 0}
 	}
-	
+
 	quotes := extractQuotes(prContent)
-	
+
 	// Debug: print the actual content being analyzed (disabled)
 	// fmt.Printf("DEBUG: Analyzing PR content with %d characters\n", len(prContent))
 	// fmt.Printf("DEBUG: Found %d quotes\n", len(quotes))
-	
+
 	score := &PRScore{
 		TotalQuotes:   len(quotes),
 		MetricDetails: make([]MetricInfo, 0),
 	}
-	
+
 	totalQuoteScore := 0
 	quotesWithMetrics := 0
-	
+
 	for _, quote := range quotes {
 		metrics, metricTypes := detectMetricsInText(quote)
-		quoteScore := scoreQuote(quote, metrics, metricTypes)
-		
+		quoteScore := scoreQuote(metrics, metricTypes)
+
 		if len(metrics) > 0 {
 			quotesWithMetrics++
 		}
-		
+
 		totalQuoteScore += quoteScore
-		
+
 		score.MetricDetails = append(score.MetricDetails, MetricInfo{
 			Quote:       quote,
 			Metrics:     metrics,
@@ -622,23 +628,23 @@ func analyzePRQuotes(prContent string) *PRScore {
 			Score:       quoteScore,
 		})
 	}
-	
+
 	score.QuotesWithMetrics = quotesWithMetrics
-	
+
 	// Calculate overall score (0-100)
 	if len(quotes) == 0 {
 		score.OverallScore = 0
 	} else {
 		// Base score: 20 points for having quotes
 		baseScore := 20
-		
+
 		// Metric bonus: up to 60 points based on quote quality
 		metricBonus := 0
 		if len(quotes) > 0 {
 			avgQuoteScore := totalQuoteScore / len(quotes)
 			metricBonus = (avgQuoteScore * 60) / 10 // Scale 0-10 to 0-60
 		}
-		
+
 		// Coverage bonus: up to 20 points for having multiple quotes with metrics
 		coverageBonus := 0
 		if quotesWithMetrics > 0 {
@@ -647,31 +653,31 @@ func analyzePRQuotes(prContent string) *PRScore {
 				coverageBonus = 20
 			}
 		}
-		
+
 		score.OverallScore = baseScore + metricBonus + coverageBonus
 		if score.OverallScore > 100 {
 			score.OverallScore = 100
 		}
 	}
-	
+
 	return score
 }
 
-// analyzeHeadlineQuality evaluates headline effectiveness
+// analyzeHeadlineQuality evaluates headline effectiveness.
 func analyzeHeadlineQuality(title string) (int, []string, []string) {
 	var issues []string
 	var strengths []string
 	score := 0
-	
+
 	if title == "" {
 		issues = append(issues, "Missing headline/title")
 		return 0, issues, strengths
 	}
-	
+
 	// Length analysis (ideal: 6-12 words, 50-80 characters)
 	words := len(strings.Fields(title))
 	chars := len(title)
-	
+
 	if chars >= 50 && chars <= 80 && words >= 6 && words <= 12 {
 		score += 3
 		strengths = append(strengths, "Headline length is optimal")
@@ -682,11 +688,11 @@ func analyzeHeadlineQuality(title string) (int, []string, []string) {
 	} else {
 		score += 1
 	}
-	
+
 	// Active voice and strong verbs
 	strongVerbs := []string{"launches", "announces", "introduces", "unveils", "delivers", "creates", "develops", "achieves", "reduces", "increases", "improves", "transforms"}
 	titleLower := strings.ToLower(title)
-	
+
 	hasStrongVerb := false
 	for _, verb := range strongVerbs {
 		if strings.Contains(titleLower, verb) {
@@ -694,132 +700,132 @@ func analyzeHeadlineQuality(title string) (int, []string, []string) {
 			break
 		}
 	}
-	
+
 	if hasStrongVerb {
 		score += 2
 		strengths = append(strengths, "Uses strong action verbs")
 	} else {
 		issues = append(issues, "Consider using stronger action verbs")
 	}
-	
+
 	// Specificity check (numbers, percentages, specific outcomes)
 	hasSpecifics := false
 	specificityPatterns := []string{`\d+%`, `\d+x`, `\d+(?:,\d{3})*`, `\$\d+`, `by \d+`, `up to \d+`}
-	
+
 	for _, pattern := range specificityPatterns {
 		if matched, _ := regexp.MatchString(pattern, title); matched {
 			hasSpecifics = true
 			break
 		}
 	}
-	
+
 	if hasSpecifics {
 		score += 3
 		strengths = append(strengths, "Includes specific metrics or outcomes")
 	} else {
 		issues = append(issues, "Consider adding specific metrics to the headline")
 	}
-	
+
 	// Avoid generic/weak language
 	weakLanguage := []string{"new", "innovative", "cutting-edge", "revolutionary", "world-class", "leading", "comprehensive", "robust"}
 	hasWeakLanguage := false
-	
+
 	for _, weak := range weakLanguage {
 		if strings.Contains(titleLower, weak) {
 			hasWeakLanguage = true
 			break
 		}
 	}
-	
+
 	if hasWeakLanguage {
 		issues = append(issues, "Avoid generic marketing language in headlines")
 	} else {
 		score += 2
 		strengths = append(strengths, "Avoids generic marketing language")
 	}
-	
+
 	return score, issues, strengths
 }
 
-// analyzeNewswortyHook evaluates the opening for immediate relevance and impact
+// analyzeNewswortyHook evaluates the opening for immediate relevance and impact.
 func analyzeNewswortyHook(content string) (int, []string, []string) {
 	var issues []string
 	var strengths []string
 	score := 0
-	
+
 	// Get first paragraph (hook)
 	paragraphs := strings.Split(content, "\n\n")
 	if len(paragraphs) == 0 {
 		issues = append(issues, "No content to analyze")
 		return 0, issues, strengths
 	}
-	
+
 	hook := strings.TrimSpace(paragraphs[0])
 	if hook == "" && len(paragraphs) > 1 {
 		hook = strings.TrimSpace(paragraphs[1])
 	}
-	
+
 	if hook == "" {
 		issues = append(issues, "Missing opening hook")
 		return 0, issues, strengths
 	}
-	
+
 	hookLower := strings.ToLower(hook)
-	
+
 	// Check for timeliness indicators
 	timelinessWords := []string{"today", "this week", "announces", "launched", "released", "unveiled", "now available"}
 	hasTimeliness := false
-	
+
 	for _, word := range timelinessWords {
 		if strings.Contains(hookLower, word) {
 			hasTimeliness = true
 			break
 		}
 	}
-	
+
 	if hasTimeliness {
 		score += 3
 		strengths = append(strengths, "Opens with timely announcement")
 	} else {
 		issues = append(issues, "Hook lacks immediate timeliness")
 	}
-	
+
 	// Check for specificity (metrics, outcomes, concrete details)
 	specificityIndicators := []string{`\d+%`, `\d+x`, `cuts .+ by`, `improves .+ by`, `reduces .+ by`, `increases .+ by`}
 	hasSpecificity := false
-	
+
 	for _, pattern := range specificityIndicators {
 		if matched, _ := regexp.MatchString(`(?i)`+pattern, hook); matched {
 			hasSpecificity = true
 			break
 		}
 	}
-	
+
 	if hasSpecificity {
 		score += 4
 		strengths = append(strengths, "Hook includes specific, measurable outcomes")
 	} else {
 		issues = append(issues, "Hook lacks specific metrics or outcomes")
 	}
-	
+
 	// Check for industry relevance/pain point addressing
 	problemWords := []string{"solves", "addresses", "tackles", "eliminates", "reduces", "improves", "streamlines", "automates"}
 	addressesProblem := false
-	
+
 	for _, word := range problemWords {
 		if strings.Contains(hookLower, word) {
 			addressesProblem = true
 			break
 		}
 	}
-	
+
 	if addressesProblem {
 		score += 3
 		strengths = append(strengths, "Addresses clear problem or improvement")
 	} else {
 		issues = append(issues, "Hook doesn't clearly address a problem or need")
 	}
-	
+
 	// Check for company/product clarity (who is doing what)
 	sentences := strings.Split(hook, ".")
 	if len(sentences) > 0 {
@@ -832,18 +838,18 @@ func analyzeNewswortyHook(content string) (int, []string, []string) {
 			issues = append(issues, "First sentence should clearly identify who is doing what")
 		}
 	}
-	
+
 	// Avoid fluff language in hook
 	fluffWords := []string{"excited", "pleased", "proud", "thrilled", "delighted", "revolutionary", "groundbreaking", "cutting-edge"}
 	hasFluff := false
-	
+
 	for _, fluff := range fluffWords {
 		if strings.Contains(hookLower, fluff) {
 			hasFluff = true
 			break
 		}
 	}
-	
+
 	if hasFluff {
 		issues = append(issues, "Hook contains marketing fluff - focus on concrete value")
 		score -= 1
@@ -851,16 +857,16 @@ func analyzeNewswortyHook(content string) (int, []string, []string) {
 		score += 3
 		strengths = append(strengths, "Hook avoids marketing fluff")
 	}
-	
+
 	return score, issues, strengths
 }
 
-// analyzeFiveWs checks coverage of who, what, when, where, why
+// analyzeFiveWs checks coverage of who, what, when, where, why.
 func analyzeFiveWs(content string) (int, []string, []string) {
 	var issues []string
 	var strengths []string
 	score := 0
-	
+
 	// Get first 2-3 paragraphs for analysis
 	paragraphs := strings.Split(content, "\n\n")
 	leadContent := ""
@@ -868,113 +874,113 @@ func analyzeFiveWs(content string) (int, []string, []string) {
 		leadContent += paragraphs[i] + " "
 	}
 	leadContentLower := strings.ToLower(leadContent)
-	
+
 	// WHO: Company/organization clearly identified
 	companyPatterns := []string{`\b[A-Z][a-z]+\s+(?:Inc|Corp|Company|LLC|Ltd)`, `[A-Z][a-zA-Z]+\s+announced`, `[A-Z][a-zA-Z]+\s+today`}
 	hasWho := false
-	
+
 	for _, pattern := range companyPatterns {
 		if matched, _ := regexp.MatchString(pattern, leadContent); matched {
 			hasWho = true
 			break
 		}
 	}
-	
+
 	if hasWho {
 		score += 3
 		strengths = append(strengths, "Clearly identifies WHO (company/organization)")
 	} else {
 		issues = append(issues, "WHO: Company/organization not clearly identified in lead")
 	}
-	
+
 	// WHAT: Product/service/action clearly described
 	actionWords := []string{"announces", "launches", "introduces", "unveils", "releases", "develops", "creates"}
 	hasWhat := false
-	
+
 	for _, action := range actionWords {
 		if strings.Contains(leadContentLower, action) {
 			hasWhat = true
 			break
 		}
 	}
-	
+
 	if hasWhat {
 		score += 3
 		strengths = append(strengths, "Clearly describes WHAT (action/product/service)")
 	} else {
 		issues = append(issues, "WHAT: Action or offering not clearly described")
 	}
-	
+
 	// WHEN: Timing/date mentioned
 	timePatterns := []string{`\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d`, `today`, `this week`, `this month`, `\d{4}`, `yesterday`, `recently`}
 	hasWhen := false
-	
+
 	for _, pattern := range timePatterns {
 		if matched, _ := regexp.MatchString(`(?i)`+pattern, leadContent); matched {
 			hasWhen = true
 			break
 		}
 	}
-	
+
 	if hasWhen {
 		score += 3
 		strengths = append(strengths, "Includes WHEN (timing/date)")
 	} else {
 		issues = append(issues, "WHEN: Timing or date not specified")
 	}
-	
+
 	// WHERE: Location/market mentioned
 	wherePatterns := []string{`[A-Z][a-z]+,\s+[A-Z]{2}`, `[A-Z][a-z]+\s+\([A-Z][a-z]+\s+Wire\)`, `headquarters`, `market`, `globally`, `worldwide`, `nation`}
 	hasWhere := false
-	
+
 	for _, pattern := range wherePatterns {
 		if matched, _ := regexp.MatchString(pattern, leadContent); matched {
 			hasWhere = true
 			break
 		}
 	}
-	
+
 	if hasWhere {
 		score += 2
 		strengths = append(strengths, "Mentions WHERE (location/market)")
 	} else {
 		issues = append(issues, "WHERE: Location or market context could be clearer")
 	}
-	
+
 	// WHY: Reason/problem/benefit explained
 	whyIndicators := []string{"because", "to help", "to address", "to solve", "to improve", "to reduce", "to increase", "enables", "allows", "provides"}
 	hasWhy := false
-	
+
 	for _, indicator := range whyIndicators {
 		if strings.Contains(leadContentLower, indicator) {
 			hasWhy = true
 			break
 		}
 	}
-	
+
 	if hasWhy {
 		score += 4
 		strengths = append(strengths, "Explains WHY (reason/benefit/problem solved)")
 	} else {
 		issues = append(issues, "WHY: Reason or benefit not clearly explained")
 	}
-	
+
 	return score, issues, strengths
 }
 
-// analyzeToneAndReadability evaluates professional tone and accessibility
+// analyzeToneAndReadability evaluates professional tone and accessibility.
 func analyzeToneAndReadability(content string) (int, []string, []string) {
 	var issues []string
 	var strengths []string
 	score := 5 // Start with neutral score
-	
+
 	contentLower := strings.ToLower(content)
-	
+
 	// Check sentence length (ideal: 15-20 words average)
 	sentences := regexp.MustCompile(`[.!?]+`).Split(content, -1)
 	totalWords := 0
 	longSentences := 0
-	
+
 	for _, sentence := range sentences {
 		words := len(strings.Fields(strings.TrimSpace(sentence)))
 		totalWords += words
@@ -982,7 +988,7 @@ func analyzeToneAndReadability(content string) (int, []string, []string) {
 			longSentences++
 		}
 	}
-	
+
 	if len(sentences) > 1 {
 		avgWordsPerSentence := totalWords / len(sentences)
 		if avgWordsPerSentence >= 15 && avgWordsPerSentence <= 20 {
@@ -992,20 +998,20 @@ func analyzeToneAndReadability(content string) (int, []string, []string) {
 			issues = append(issues, "Sentences too long - break into shorter, clearer statements")
 		}
 	}
-	
+
 	if longSentences > len(sentences)/3 {
 		issues = append(issues, "Too many overly long sentences - impacts readability")
 		score -= 1
 	}
-	
+
 	// Check for passive voice overuse
 	passiveIndicators := []string{"is being", "was being", "are being", "were being", "has been", "have been", "had been", "will be"}
 	passiveCount := 0
-	
+
 	for _, passive := range passiveIndicators {
 		passiveCount += strings.Count(contentLower, passive)
 	}
-	
+
 	if passiveCount > len(sentences)/4 {
 		issues = append(issues, "Overuse of passive voice - use active voice for clarity")
 		score -= 1
@@ -1013,17 +1019,17 @@ func analyzeToneAndReadability(content string) (int, []string, []string) {
 		score += 1
 		strengths = append(strengths, "Good use of active voice")
 	}
-	
+
 	// Check for jargon density
 	techJargon := []string{"synergies", "paradigm", "leverage", "ecosystem", "scalable", "turnkey", "best-in-class", "enterprise-grade"}
 	jargonCount := 0
-	
+
 	for _, jargon := range techJargon {
 		if strings.Contains(contentLower, jargon) {
 			jargonCount++
 		}
 	}
-	
+
 	if jargonCount > 3 {
 		issues = append(issues, "Too much technical jargon - write for broader audience")
 		score -= 1
@@ -1031,12 +1037,12 @@ func analyzeToneAndReadability(content string) (int, []string, []string) {
 		score += 1
 		strengths = append(strengths, "Avoids unnecessary jargon")
 	}
-	
+
 	// Check for quotation variety and quality
 	quotes := extractQuotes(content)
 	executiveFluff := []string{"excited", "pleased", "proud", "thrilled", "honored", "delighted"}
 	fluffyQuotes := 0
-	
+
 	for _, quote := range quotes {
 		quoteLower := strings.ToLower(quote)
 		for _, fluff := range executiveFluff {
@@ -1046,7 +1052,7 @@ func analyzeToneAndReadability(content string) (int, []string, []string) {
 			}
 		}
 	}
-	
+
 	if len(quotes) > 0 {
 		if fluffyQuotes < len(quotes)/2 {
 			score += 1
@@ -1055,33 +1061,33 @@ func analyzeToneAndReadability(content string) (int, []string, []string) {
 			issues = append(issues, "Too many generic 'excited' quotes - add substantive insights")
 		}
 	}
-	
+
 	return score, issues, strengths
 }
 
-// analyzeMarketingFluff detects and penalizes excessive promotional language
+// analyzeMarketingFluff detects and penalizes excessive promotional language.
 func analyzeMarketingFluff(content string) (int, []string, []string) {
 	var issues []string
 	var strengths []string
 	score := 10 // Start with full points, deduct for fluff
-	
+
 	contentLower := strings.ToLower(content)
-	
+
 	// Hyperbolic adjectives
 	hypeWords := []string{
-		"revolutionary", "groundbreaking", "cutting-edge", "world-class", 
+		"revolutionary", "groundbreaking", "cutting-edge", "world-class",
 		"industry-leading", "best-in-class", "state-of-the-art", "next-generation",
 		"breakthrough", "game-changing", "disruptive", "unprecedented",
 		"ultimate", "premier", "superior", "exceptional", "outstanding",
 	}
-	
+
 	hypeCount := 0
 	for _, hype := range hypeWords {
 		if strings.Contains(contentLower, hype) {
 			hypeCount++
 		}
 	}
-	
+
 	if hypeCount > 3 {
 		score -= 3
 		issues = append(issues, "Excessive hyperbolic language reduces credibility")
@@ -1091,12 +1097,12 @@ func analyzeMarketingFluff(content string) (int, []string, []string) {
 	} else if hypeCount == 0 {
 		strengths = append(strengths, "Avoids hyperbolic marketing language")
 	}
-	
+
 	// Emotional fluff in quotes
 	emotionalFluff := []string{"excited", "thrilled", "delighted", "pleased", "proud", "honored"}
 	quotes := extractQuotes(content)
 	fluffyQuotes := 0
-	
+
 	for _, quote := range quotes {
 		quoteLower := strings.ToLower(quote)
 		for _, fluff := range emotionalFluff {
@@ -1106,7 +1112,7 @@ func analyzeMarketingFluff(content string) (int, []string, []string) {
 			}
 		}
 	}
-	
+
 	if len(quotes) > 0 {
 		fluffRatio := float64(fluffyQuotes) / float64(len(quotes))
 		if fluffRatio > 0.7 {
@@ -1119,63 +1125,63 @@ func analyzeMarketingFluff(content string) (int, []string, []string) {
 			strengths = append(strengths, "Quotes provide meaningful insights")
 		}
 	}
-	
+
 	// Vague benefits without proof
 	vagueTerms := []string{"comprehensive solution", "robust platform", "seamless integration", "enhanced productivity", "improved efficiency", "optimal performance"}
 	vagueCount := 0
-	
+
 	for _, vague := range vagueTerms {
 		if strings.Contains(contentLower, vague) {
 			vagueCount++
 		}
 	}
-	
+
 	if vagueCount > 2 {
 		score -= 2
 		issues = append(issues, "Vague benefit claims need specific proof points")
 	} else if vagueCount == 0 {
 		strengths = append(strengths, "Avoids vague, unsubstantiated claims")
 	}
-	
+
 	// Check for proof backing claims
 	proofIndicators := []string{`\d+%`, `\d+x`, `study shows`, `research indicates`, `data reveals`, `according to`, `measured`, `demonstrated`}
 	hasProof := false
-	
+
 	for _, pattern := range proofIndicators {
 		if matched, _ := regexp.MatchString(`(?i)`+pattern, content); matched {
 			hasProof = true
 			break
 		}
 	}
-	
+
 	if hasProof {
 		strengths = append(strengths, "Backs claims with data or evidence")
 	} else {
 		score -= 1
 		issues = append(issues, "Claims would be stronger with supporting data")
 	}
-	
+
 	return score, issues, strengths
 }
 
-// analyzeStructure evaluates inverted pyramid and logical flow
+// analyzeStructure evaluates inverted pyramid and logical flow.
 func analyzeStructure(content string) (int, []string, []string) {
 	var issues []string
 	var strengths []string
 	score := 0
-	
+
 	paragraphs := strings.Split(content, "\n\n")
 	if len(paragraphs) < 3 {
 		issues = append(issues, "Press release too short for proper structure analysis")
 		return 2, issues, strengths
 	}
-	
+
 	// First paragraph should contain key info (lead)
 	firstPara := strings.TrimSpace(paragraphs[0])
 	if firstPara == "" && len(paragraphs) > 1 {
 		firstPara = strings.TrimSpace(paragraphs[1])
 	}
-	
+
 	// Lead should be substantial but not too long
 	leadWords := len(strings.Fields(firstPara))
 	if leadWords >= 25 && leadWords <= 50 {
@@ -1186,7 +1192,7 @@ func analyzeStructure(content string) (int, []string, []string) {
 	} else if leadWords < 20 {
 		issues = append(issues, "Lead paragraph too brief - lacks key details")
 	}
-	
+
 	// Check for supporting details in middle paragraphs
 	middleContent := ""
 	startIdx := 1
@@ -1194,23 +1200,23 @@ func analyzeStructure(content string) (int, []string, []string) {
 	if endIdx <= startIdx {
 		endIdx = len(paragraphs) - 1
 	}
-	
+
 	for i := startIdx; i < endIdx; i++ {
 		middleContent += paragraphs[i] + " "
 	}
-	
+
 	if len(middleContent) > 0 {
 		// Should contain supporting details, context, or additional quotes
 		supportingElements := []string{"according to", "the company", "additionally", "furthermore", "the solution", "customers"}
 		hasSupporting := false
-		
+
 		for _, element := range supportingElements {
 			if strings.Contains(strings.ToLower(middleContent), element) {
 				hasSupporting = true
 				break
 			}
 		}
-		
+
 		if hasSupporting {
 			score += 3
 			strengths = append(strengths, "Includes supporting details and context")
@@ -1218,20 +1224,20 @@ func analyzeStructure(content string) (int, []string, []string) {
 			issues = append(issues, "Middle content lacks supporting details")
 		}
 	}
-	
+
 	// Last paragraph should contain boilerplate (about company)
 	if len(paragraphs) >= 3 {
 		lastPara := strings.ToLower(paragraphs[len(paragraphs)-1])
 		boilerplateIndicators := []string{"about ", "founded", "headquartered", "company", "organization", "learn more"}
 		hasBoilerplate := false
-		
+
 		for _, indicator := range boilerplateIndicators {
 			if strings.Contains(lastPara, indicator) {
 				hasBoilerplate = true
 				break
 			}
 		}
-		
+
 		if hasBoilerplate {
 			score += 2
 			strengths = append(strengths, "Includes proper company boilerplate")
@@ -1239,40 +1245,40 @@ func analyzeStructure(content string) (int, []string, []string) {
 			issues = append(issues, "Missing company boilerplate information")
 		}
 	}
-	
+
 	// Check for logical flow and transitions
 	transitionWords := []string{"additionally", "furthermore", "moreover", "however", "meanwhile", "as a result"}
 	hasTransitions := false
-	
+
 	for _, transition := range transitionWords {
 		if strings.Contains(strings.ToLower(content), transition) {
 			hasTransitions = true
 			break
 		}
 	}
-	
+
 	if hasTransitions {
 		score += 2
 		strengths = append(strengths, "Uses transitions for logical flow")
 	} else if len(paragraphs) > 4 {
 		issues = append(issues, "Consider adding transitions between sections")
 	}
-	
+
 	return score, issues, strengths
 }
 
-// analyzeReleaseDate checks for proper date formatting in the opening lines
+// analyzeReleaseDate checks for proper date formatting in the opening lines.
 func analyzeReleaseDate(content string) (int, []string, []string) {
 	var issues []string
 	var strengths []string
 	score := 0
-	
+
 	// Get the first few lines (first 200 characters) to look for release date
 	firstLines := content
 	if len(content) > 200 {
 		firstLines = content[:200]
 	}
-	
+
 	// Common date patterns for press releases
 	datePatterns := []string{
 		// Month Day, Year format: "Aug 20, 2024", "August 20, 2024", "Jan 1, 2025"
@@ -1290,7 +1296,7 @@ func analyzeReleaseDate(content string) (int, []string, []string) {
 		// Full date with day: "Monday, August 20, 2024"
 		`(?i)\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b`,
 	}
-	
+
 	hasDate := false
 	for _, pattern := range datePatterns {
 		if matched, _ := regexp.MatchString(pattern, firstLines); matched {
@@ -1298,11 +1304,11 @@ func analyzeReleaseDate(content string) (int, []string, []string) {
 			break
 		}
 	}
-	
+
 	if hasDate {
 		score = 5
 		strengths = append(strengths, "Includes release date in opening lines")
-		
+
 		// Check if it follows the standard press release format (Date. Location. Company...)
 		locationPattern := `(?i)\b[A-Z][a-z]+,?\s+[A-Z]{2,}\b` // City, State/Country pattern
 		if matched, _ := regexp.MatchString(locationPattern, firstLines); matched {
@@ -1313,16 +1319,16 @@ func analyzeReleaseDate(content string) (int, []string, []string) {
 		issues = append(issues, "Missing release date in opening lines")
 		issues = append(issues, "Add date and location (e.g., 'Aug 20, 2024. Seattle, WA.')")
 	}
-	
+
 	return score, issues, strengths
 }
 
-// comprehensivePRAnalysis combines all quality metrics
+// comprehensivePRAnalysis combines all quality metrics.
 func comprehensivePRAnalysis(prContent string, title string, quoteScore int) *PRScore {
 	if prContent == "" {
 		return &PRScore{OverallScore: 0}
 	}
-	
+
 	// Analyze each component
 	headlineScore, headlineIssues, headlineStrengths := analyzeHeadlineQuality(title)
 	hookScore, hookIssues, hookStrengths := analyzeNewswortyHook(prContent)
@@ -1331,7 +1337,7 @@ func comprehensivePRAnalysis(prContent string, title string, quoteScore int) *PR
 	structureScore, structIssues, structStrengths := analyzeStructure(prContent)
 	toneScore, toneIssues, toneStrengths := analyzeToneAndReadability(prContent)
 	fluffScore, fluffIssues, fluffStrengths := analyzeMarketingFluff(prContent)
-	
+
 	// Combine all issues and strengths
 	allIssues := append(headlineIssues, hookIssues...)
 	allIssues = append(allIssues, releaseDateIssues...)
@@ -1339,18 +1345,18 @@ func comprehensivePRAnalysis(prContent string, title string, quoteScore int) *PR
 	allIssues = append(allIssues, structIssues...)
 	allIssues = append(allIssues, toneIssues...)
 	allIssues = append(allIssues, fluffIssues...)
-	
+
 	allStrengths := append(headlineStrengths, hookStrengths...)
 	allStrengths = append(allStrengths, releaseDateStrengths...)
 	allStrengths = append(allStrengths, fiveWsStrengths...)
 	allStrengths = append(allStrengths, structStrengths...)
 	allStrengths = append(allStrengths, toneStrengths...)
 	allStrengths = append(allStrengths, fluffStrengths...)
-	
+
 	// Calculate overall score (100 points total)
 	// New scoring: Structure & Hook (30), Content Quality (35), Professional Quality (20), Customer Evidence (15)
 	totalScore := headlineScore + hookScore + releaseDateScore + fiveWsScore + structureScore + toneScore + fluffScore + quoteScore
-	
+
 	breakdown := PRQualityBreakdown{
 		HeadlineScore:    headlineScore,
 		HookScore:        hookScore,
@@ -1364,22 +1370,22 @@ func comprehensivePRAnalysis(prContent string, title string, quoteScore int) *PR
 		Issues:           allIssues,
 		Strengths:        allStrengths,
 	}
-	
+
 	// Get quote analysis from existing function
 	quoteAnalysis := analyzePRQuotes(prContent)
-	
+
 	// Add quote count feedback
 	var quoteCountIssues []string
 	if quoteAnalysis.TotalQuotes > 4 {
 		quoteCountIssues = append(quoteCountIssues, "Consider reducing quotes - press releases work best with 3-4 focused customer testimonials")
 	}
-	
+
 	// Combine quote count feedback with other issues
 	allIssues = append(allIssues, quoteCountIssues...)
-	
+
 	// Update the breakdown with the complete issue list
 	breakdown.Issues = allIssues
-	
+
 	return &PRScore{
 		TotalQuotes:       quoteAnalysis.TotalQuotes,
 		QuotesWithMetrics: quoteAnalysis.QuotesWithMetrics,
@@ -1389,13 +1395,18 @@ func comprehensivePRAnalysis(prContent string, title string, quoteScore int) *PR
 	}
 }
 
-// ParsePRFAQ reads a markdown file and extracts key sections
+// ParsePRFAQ reads a markdown file and extracts key sections.
 func ParsePRFAQ(path string) (*SpecSections, error) {
-	file, err := os.Open(path)
+	file, err := os.Open(path) //nolint:gosec // path is user-provided CLI argument
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			// Log error but don't override return error
+			fmt.Printf("Warning: failed to close file: %v\n", closeErr)
+		}
+	}()
 
 	sections := &SpecSections{
 		OtherSections: make(map[string]string),
@@ -1413,7 +1424,7 @@ func ParsePRFAQ(path string) (*SpecSections, error) {
 
 	// Define common section headers once
 	commonHeaders := []string{
-		"Press Release", "FAQ", "FAQs", "Frequently Asked Questions", 
+		"Press Release", "FAQ", "FAQs", "Frequently Asked Questions",
 		"Q&A", "Questions and Answers", "Success Metrics", "Key Metrics",
 		"Metrics", "Internal FAQ", "Questions", "Answers",
 	}
@@ -1427,7 +1438,7 @@ func ParsePRFAQ(path string) (*SpecSections, error) {
 			titleText := strings.TrimPrefix(line, "# ")
 			sections.Title = titleText
 			titleSet = true
-			
+
 			// Check if this H1 is also a section header (like "# Press Release")
 			for _, header := range commonHeaders {
 				if strings.EqualFold(titleText, header) {
@@ -1442,17 +1453,17 @@ func ParsePRFAQ(path string) (*SpecSections, error) {
 		// Detect section heading (both markdown ## and plain text)
 		isMarkdownHeader := strings.HasPrefix(line, "## ")
 		isPlainTextHeader := false
-		
+
 		// Check for plain text headers (common section names that stand alone)
 		trimmedLine := strings.TrimSpace(line)
-		
+
 		for _, header := range commonHeaders {
 			if strings.EqualFold(trimmedLine, header) {
 				isPlainTextHeader = true
 				break
 			}
 		}
-		
+
 		if isMarkdownHeader || isPlainTextHeader {
 			// Save the previous section's content
 			if currentSection != "" {
@@ -1490,7 +1501,7 @@ func ParsePRFAQ(path string) (*SpecSections, error) {
 	// Process sections with fuzzy logic and handle FAQ numbering
 	var faqContent strings.Builder
 	var inFAQSection bool
-	
+
 	for _, section := range allSections {
 		// Check for FAQ sections first (more specific)
 		if isFAQSection(section.name) {
@@ -1533,7 +1544,7 @@ func ParsePRFAQ(path string) (*SpecSections, error) {
 		// Default to other sections
 		sections.OtherSections[section.name] = section.content
 	}
-	
+
 	// Handle case where FAQ section continues to end of document
 	if inFAQSection && faqContent.Len() > 0 {
 		sections.FAQs = strings.TrimSpace(faqContent.String())

@@ -1,0 +1,31 @@
+{
+  "name": "pr-faq-validator",
+  "version": "1.0.0",
+  "description": "Go-based CLI tool for analyzing PR-FAQ documents",
+  "main": "index.js",
+  "scripts": {
+    "prepare": "husky install",
+    "test": "./scripts/test.sh",
+    "build": "./scripts/build.sh",
+    "lint": "golangci-lint run",
+    "lint:fix": "golangci-lint run --fix",
+    "fmt": "gofmt -w . && goimports -w .",
+    "precommit": "./scripts/test.sh --quick"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bordenet/pr-faq-validator.git"
+  },
+  "keywords": [
+    "pr-faq",
+    "validator",
+    "go",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "husky": "^8.0.0"
+  }
+}
+

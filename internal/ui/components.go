@@ -1,3 +1,4 @@
+// Package ui provides terminal user interface components for the PR-FAQ validator.
 package ui
 
 import (
@@ -8,7 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// RenderHeader creates a styled header section
+// RenderHeader creates a styled header section.
 func RenderHeader(title string, score int) string {
 	var parts []string
 
@@ -34,7 +35,7 @@ func RenderHeader(title string, score int) string {
 	return lipgloss.JoinVertical(lipgloss.Center, parts...)
 }
 
-// RenderScoreBreakdown creates a styled score breakdown table
+// RenderScoreBreakdown creates a styled score breakdown table.
 func RenderScoreBreakdown(breakdown parser.PRQualityBreakdown) string {
 	var rows []string
 
@@ -74,25 +75,25 @@ func RenderScoreBreakdown(breakdown parser.PRQualityBreakdown) string {
 	return CardStyle.Width(85).Render(content)
 }
 
-// renderScoreRow creates a single row in the score breakdown table
-func renderScoreRow(category string, score, max int, isSubcategory bool) string {
+// renderScoreRow creates a single row in the score breakdown table.
+func renderScoreRow(category string, score, maxScore int, isSubcategory bool) string {
 	style := TableRowStyle
 	if isSubcategory {
 		style = TableRowAltStyle
 	}
 
 	scoreText := GetScoreStyle(score).Render(fmt.Sprintf("%d", score))
-	progressBar := CreateProgressBar(score, max, 20)
+	progressBar := CreateProgressBar(score, maxScore, 20)
 
 	return lipgloss.JoinHorizontal(lipgloss.Left,
 		style.Width(25).Render(category),
 		style.Width(12).Render(scoreText),
-		style.Width(12).Render(fmt.Sprintf("%d", max)),
+		style.Width(12).Render(fmt.Sprintf("%d", maxScore)),
 		style.Width(30).Render(progressBar),
 	)
 }
 
-// RenderStrengths creates a styled strengths section
+// RenderStrengths creates a styled strengths section.
 func RenderStrengths(strengths []string) string {
 	if len(strengths) == 0 {
 		return ""
@@ -110,7 +111,7 @@ func RenderStrengths(strengths []string) string {
 	return SuccessCardStyle.Width(65).Render(content)
 }
 
-// RenderImprovements creates a styled improvements section
+// RenderImprovements creates a styled improvements section.
 func RenderImprovements(issues []string) string {
 	if len(issues) == 0 {
 		return ""
@@ -128,7 +129,7 @@ func RenderImprovements(issues []string) string {
 	return WarningCardStyle.Width(65).Align(lipgloss.Left).Render(content)
 }
 
-// RenderQuoteAnalysis creates a styled quote analysis section
+// RenderQuoteAnalysis creates a styled quote analysis section.
 func RenderQuoteAnalysis(score parser.PRScore) string {
 	if len(score.MetricDetails) == 0 {
 		return ""
@@ -174,7 +175,7 @@ func RenderQuoteAnalysis(score parser.PRScore) string {
 	return CardStyle.Render(lipgloss.JoinVertical(lipgloss.Left, items...))
 }
 
-// RenderLLMFeedback creates a styled LLM feedback section
+// RenderLLMFeedback creates a styled LLM feedback section.
 func RenderLLMFeedback(title, feedback string) string {
 	if feedback == "" {
 		return ""
@@ -187,7 +188,7 @@ func RenderLLMFeedback(title, feedback string) string {
 	return CardStyle.Render(lipgloss.JoinVertical(lipgloss.Left, items...))
 }
 
-// RenderTabs creates a styled tab interface
+// RenderTabs creates a styled tab interface.
 func RenderTabs(tabs []string, activeTab int) string {
 	var renderedTabs []string
 
@@ -202,7 +203,7 @@ func RenderTabs(tabs []string, activeTab int) string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
 }
 
-// RenderHelp creates a styled help section
+// RenderHelp creates a styled help section.
 func RenderHelp() string {
 	helpText := `
 Navigation:
@@ -214,7 +215,7 @@ Navigation:
 	return HelpStyle.Render(helpText)
 }
 
-// RenderStatus creates a styled status line
+// RenderStatus creates a styled status line.
 func RenderStatus(message string) string {
 	return StatusStyle.Render(message)
 }

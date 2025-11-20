@@ -1,3 +1,4 @@
+// Package llm provides integration with OpenAI's GPT models for qualitative feedback.
 package llm
 
 import (
@@ -12,14 +13,17 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
+// GPT4O is the model identifier for OpenAI's GPT-4o model.
 const GPT4O = "gpt-4o"
 
+// Feedback contains qualitative analysis feedback from the LLM.
 type Feedback struct {
 	Section  string
 	Comments string
 	Score    float64
 }
 
+// AnalyzeSection sends a section to the LLM for qualitative feedback.
 func AnalyzeSection(sectionName, content string) (*Feedback, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
@@ -78,8 +82,8 @@ Provide specific, actionable feedback on how to improve this section. Then give 
 		}
 
 		// backoff
-		jitter := time.Duration(rand.Intn(300)) * time.Millisecond
-		delay := baseDelay * (1 << (attempt - 1)) // exponential
+		jitter := time.Duration(rand.Intn(300)) * time.Millisecond //nolint:gosec // weak random is fine for jitter
+		delay := baseDelay * (1 << (attempt - 1))                  // exponential
 		time.Sleep(delay + jitter)
 	}
 

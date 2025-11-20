@@ -1,16 +1,16 @@
+// Package main provides the CLI entry point for the PR-FAQ validator tool.
 package main
 
 import (
-	"github.com/bordenet/pr-faq-validator/internal/llm"
-	"github.com/bordenet/pr-faq-validator/internal/parser"
-	"github.com/bordenet/pr-faq-validator/internal/ui"
-	tea "github.com/charmbracelet/bubbletea"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"regexp"
-	"strings"
+
+	"github.com/bordenet/pr-faq-validator/internal/llm"
+	"github.com/bordenet/pr-faq-validator/internal/parser"
+	"github.com/bordenet/pr-faq-validator/internal/ui"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
@@ -50,21 +50,21 @@ func main() {
 	runInteractiveTUI(*sections)
 }
 
-// runInteractiveTUI starts the interactive TUI interface
+// runInteractiveTUI starts the interactive TUI interface.
 func runInteractiveTUI(sections parser.SpecSections) {
 	// Initialize TUI model
 	model := ui.NewModel(sections)
-	
+
 	// Create Bubble Tea program
 	p := tea.NewProgram(model, tea.WithAltScreen())
-	
+
 	// Run the TUI
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("Error running TUI: %v", err)
 	}
 }
 
-// runLegacyOutput provides the original stdout-based output
+// runLegacyOutput provides the original stdout-based output.
 func runLegacyOutput(sections parser.SpecSections) {
 	// Generate comprehensive markdown report
 	report := parser.GenerateMarkdownReport(&sections, sections.PRScore)
@@ -77,24 +77,24 @@ func runLegacyOutput(sections parser.SpecSections) {
 	// Display comprehensive PR scoring results
 	if sections.PressRelease != "" {
 		fmt.Printf("== Press Release Quality Score: %d/100 ==\n\n", sections.PRScore.OverallScore)
-		
+
 		// Quality breakdown
 		breakdown := sections.PRScore.QualityBreakdown
 		fmt.Println("== Quality Breakdown ==")
-		fmt.Printf("Structure & Hook:      %d/30 points\n", breakdown.HeadlineScore + breakdown.HookScore + breakdown.ReleaseDateScore)
+		fmt.Printf("Structure & Hook:      %d/30 points\n", breakdown.HeadlineScore+breakdown.HookScore+breakdown.ReleaseDateScore)
 		fmt.Printf("  - Headline Quality:   %d/10\n", breakdown.HeadlineScore)
 		fmt.Printf("  - Newsworthy Hook:    %d/15\n", breakdown.HookScore)
 		fmt.Printf("  - Release Date:       %d/5\n", breakdown.ReleaseDateScore)
-		fmt.Printf("Content Quality:       %d/35 points\n", breakdown.FiveWsScore + breakdown.CredibilityScore + breakdown.StructureScore)
+		fmt.Printf("Content Quality:       %d/35 points\n", breakdown.FiveWsScore+breakdown.CredibilityScore+breakdown.StructureScore)
 		fmt.Printf("  - 5 Ws Coverage:      %d/15\n", breakdown.FiveWsScore)
 		fmt.Printf("  - Credibility:        %d/10\n", breakdown.CredibilityScore)
 		fmt.Printf("  - Structure:          %d/10\n", breakdown.StructureScore)
-		fmt.Printf("Professional Quality:  %d/20 points\n", breakdown.ToneScore + breakdown.FluffScore)
+		fmt.Printf("Professional Quality:  %d/20 points\n", breakdown.ToneScore+breakdown.FluffScore)
 		fmt.Printf("  - Tone & Readability: %d/10\n", breakdown.ToneScore)
 		fmt.Printf("  - Fluff Avoidance:    %d/10\n", breakdown.FluffScore)
 		fmt.Printf("Customer Evidence:     %d/15 points\n", breakdown.QuoteScore)
 		fmt.Printf("  - Quote Quality:      %d/15\n\n", breakdown.QuoteScore)
-		
+
 		// Strengths
 		if len(breakdown.Strengths) > 0 {
 			fmt.Println("== Strengths ==")
@@ -103,7 +103,7 @@ func runLegacyOutput(sections parser.SpecSections) {
 			}
 			fmt.Println()
 		}
-		
+
 		// Issues to address
 		if len(breakdown.Issues) > 0 {
 			fmt.Println("== Areas for Improvement ==")
@@ -112,7 +112,7 @@ func runLegacyOutput(sections parser.SpecSections) {
 			}
 			fmt.Println()
 		}
-		
+
 		// Detailed quote analysis if present
 		if len(sections.PRScore.MetricDetails) > 0 {
 			fmt.Printf("== Quote Analysis (%d quotes found) ==\n", sections.PRScore.TotalQuotes)
@@ -148,26 +148,16 @@ func runLegacyOutput(sections parser.SpecSections) {
 }
 
 func writeReportToFile(filename, content string) error {
-	file, err := os.Create(filename)
+	file, err := os.Create(filename) //nolint:gosec // filename is user-provided CLI argument
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close file: %v\n", closeErr)
+		}
+	}()
+
 	_, err = file.WriteString(content)
 	return err
-}
-
-func countNumberedQuestions(faqContent string) int {
-	count := 0
-	lines := strings.Split(faqContent, "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(strings.TrimSpace(line), "## ") {
-			header := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "## "))
-			if matched, _ := regexp.MatchString(`^\d+\.`, header); matched {
-				count++
-			}
-		}
-	}
-	return count
 }
