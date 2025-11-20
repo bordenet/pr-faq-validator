@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-################################################################################
-# Pre-Commit Hook
-################################################################################
-# PURPOSE: Run automated checks before each commit
-# - Check for compiled binaries
-# - Run Go formatting checks
-# - Run quick linting
-# - Run tests
-################################################################################
-
 set -e
 
 echo "🔍 Running pre-commit checks..."
@@ -18,15 +8,35 @@ if [ -f .husky/check-binaries ]; then
     ./.husky/check-binaries
 fi
 
-# Run quick test suite (includes linting)
-echo ""
-echo "🧪 Running tests and linting..."
-./scripts/test.sh --quick || {
-    echo ""
-    echo "⚠️  Some tests failed, but allowing commit to proceed"
-    echo "⚠️  Please review test failures and fix before merging"
+# Run Go formatting check
+echo "🎨 Checking Go formatting..."
+if ! gofmt -l . | grep -q '^$'; then
+    echo "❌ Go files are not formatted. Run: gofmt -w ."
+    gofmt -l .
+    exit 1
+fi
+
+# Run linting
+echo "🔍 Running linting..."
+if command -v golangci-lint >/dev/null 2>&1; then
+    golangci-lint run ./... || {
+        echo "❌ Linting failed. Fix issues above."
+        exit 1
+    }
+fi
+
+# Run tests
+echo "🧪 Running tests..."
+go test ./... || {
+    echo "❌ Tests failed. Fix issues above."
+    exit 1
 }
 
-echo ""
-echo "✅ Pre-commit checks complete!"
+# Check compilation
+echo "🔨 Checking compilation..."
+go build || {
+    echo "❌ Build failed. Fix compilation errors above."
+    exit 1
+}
 
+echo "✅ All pre-commit checks passed!"
