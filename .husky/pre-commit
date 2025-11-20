@@ -10,9 +10,10 @@ fi
 
 # Run Go formatting check
 echo "🎨 Checking Go formatting..."
-if ! gofmt -l . | grep -q '^$'; then
+UNFORMATTED=$(gofmt -l .)
+if [ -n "$UNFORMATTED" ]; then
     echo "❌ Go files are not formatted. Run: gofmt -w ."
-    gofmt -l .
+    echo "$UNFORMATTED"
     exit 1
 fi
 

@@ -4,6 +4,7 @@ run:
   timeout: 5m
 
 linters:
+  default: none
   enable:
     - errcheck      # Check for unchecked errors
     - govet         # Vet examines Go source code
@@ -14,15 +15,11 @@ linters:
     - gosec         # Security-focused linter
     - gocyclo       # Check cyclomatic complexity
     - errorlint     # Check error wrapping
-  disable:
-    - revive        # Disabled: too many style issues
-    - gocritic      # Disabled: too many style issues
-    - godot         # Disabled: comment period requirement
 
 formatters:
   enable:
-    - gofmt         # Check formatting
-    - goimports     # Check import formatting
+    - gofmt         # Format code
+    - goimports     # Format imports
 
 issues:
   max-issues-per-linter: 0
