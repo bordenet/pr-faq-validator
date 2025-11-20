@@ -134,7 +134,13 @@ A: Yes.
 		t.Fatalf("Command failed: %v\nOutput: %s", err, output)
 	}
 
-	outputStr := string(output)
+	// Read the generated report file
+	reportContent, err := os.ReadFile(reportPath) //nolint:gosec // test code with controlled paths
+	if err != nil {
+		t.Fatalf("Failed to read report file: %v", err)
+	}
+
+	reportStr := string(reportContent)
 
 	// Verify markdown report format
 	expectedSections := []string{
@@ -144,7 +150,7 @@ A: Yes.
 	}
 
 	for _, section := range expectedSections {
-		if !strings.Contains(outputStr, section) {
+		if !strings.Contains(reportStr, section) {
 			t.Errorf("Report missing expected section: %q", section)
 		}
 	}

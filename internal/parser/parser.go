@@ -634,6 +634,7 @@ func analyzePRQuotes(prContent string) *PRScore {
 	// Calculate overall score (0-100)
 	if len(quotes) == 0 {
 		score.OverallScore = 0
+		score.QualityBreakdown.QuoteScore = 0
 	} else {
 		// Base score: 20 points for having quotes
 		baseScore := 20
@@ -658,6 +659,9 @@ func analyzePRQuotes(prContent string) *PRScore {
 		if score.OverallScore > 100 {
 			score.OverallScore = 100
 		}
+
+		// Convert OverallScore (0-100) to QuoteScore (0-15)
+		score.QualityBreakdown.QuoteScore = (score.OverallScore * 15) / 100
 	}
 
 	return score
@@ -1424,7 +1428,7 @@ func ParsePRFAQ(path string) (*SpecSections, error) {
 
 	// Define common section headers once
 	commonHeaders := []string{
-		"Press Release", "FAQ", "FAQs", "Frequently Asked Questions",
+		"Press Release", "Announcement", "FAQ", "FAQs", "Frequently Asked Questions",
 		"Q&A", "Questions and Answers", "Success Metrics", "Key Metrics",
 		"Metrics", "Internal FAQ", "Questions", "Answers",
 	}
@@ -1523,7 +1527,8 @@ func ParsePRFAQ(path string) (*SpecSections, error) {
 		}
 
 		// Check for explicit press release header
-		if strings.ToLower(section.name) == "press release" {
+		lowerSectionName := strings.ToLower(section.name)
+		if lowerSectionName == "press release" || lowerSectionName == "announcement" {
 			sections.PressRelease = section.content
 			continue
 		}
