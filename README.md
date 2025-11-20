@@ -1,6 +1,13 @@
 
 # pr-faq-validator
 
+[![CI](https://github.com/bordenet/pr-faq-validator/actions/workflows/ci.yml/badge.svg)](https://github.com/bordenet/pr-faq-validator/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/bordenet/pr-faq-validator/branch/main/graph/badge.svg)](https://codecov.io/gh/bordenet/pr-faq-validator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/bordenet/pr-faq-validator)](https://goreportcard.com/report/github.com/bordenet/pr-faq-validator)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/bordenet/pr-faq-validator)](https://github.com/bordenet/pr-faq-validator/blob/main/go.mod)
+[![License](https://img.shields.io/github/license/bordenet/pr-faq-validator)](https://github.com/bordenet/pr-faq-validator/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/bordenet/pr-faq-validator)](https://github.com/bordenet/pr-faq-validator/releases)
+
 A CLI tool to analyze and score [PR-FAQ documents](https://github.com/bordenet/Engineering_Culture/blob/main/SDLC/The_PR-FAQ.md) using deterministic quality metrics.
 
 ## Overview
