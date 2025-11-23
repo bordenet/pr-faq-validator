@@ -98,6 +98,24 @@ Provides interactive terminal UI with:
 
 **Note:** Scoring is strict - high scores require well-crafted documents. Focus on actionable feedback to improve quality.
 
+---
+
+## Code Coverage
+
+pr-faq-validator maintains **76.3% test coverage** with comprehensive testing of core functionality. The coverage visualization below shows detailed coverage by module:
+
+[![Coverage Grid](https://codecov.io/gh/bordenet/pr-faq-validator/graphs/tree.svg)](https://codecov.io/gh/bordenet/pr-faq-validator)
+
+**What this means:**
+- **Green**: Well-tested code (>80% coverage)
+- **Yellow**: Moderate coverage (60-80%)
+- **Red**: Needs more tests (<60%)
+- **Size**: Larger boxes = more lines of code
+
+Click the image to explore detailed coverage reports on Codecov, including line-by-line coverage, branch coverage, and historical trends.
+
+---
+
 ## License
 
 MIT License - see LICENSE file for details.
