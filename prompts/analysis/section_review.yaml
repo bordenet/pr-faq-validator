@@ -1,0 +1,157 @@
+# Section Review - Analysis Prompt
+# Version: 1.0.0
+# Context: Used to analyze individual sections of PR-FAQ documents and provide
+#          qualitative feedback on clarity, completeness, and effectiveness.
+
+name: "section-review"
+version: "1.0.0"
+description: "Analyzes PR-FAQ sections and provides actionable feedback with quality scores"
+
+context: |
+  This prompt is used by the LLM analyzer to review individual sections of PR-FAQ documents.
+  It receives a section name and content, then provides specific feedback and a quality score.
+  
+  Expected variables:
+  - section_name: Name of the section being reviewed (e.g., "Press Release", "FAQ")
+  - content: The actual content of the section to be reviewed
+  
+  Expected output:
+  - Specific, actionable feedback on improvements
+  - Quality score from 0-10 based on clarity, completeness, and effectiveness
+  - Identification of strengths and weaknesses
+
+# System-level instructions (sets the LLM's role and constraints)
+system_prompt: |
+  You are a product manager reviewing PR-FAQs for clarity and quality.
+  
+  Your role is to provide constructive, specific feedback that helps improve the document.
+  Focus on:
+  - Clarity: Is the content easy to understand?
+  - Completeness: Does it cover all necessary information?
+  - Effectiveness: Will it achieve its intended purpose?
+  - Amazon PR-FAQ format adherence
+  
+  CRITICAL REQUIREMENTS:
+  - Be specific and actionable in your feedback
+  - Avoid generic praise or criticism
+  - Point to exact issues and suggest concrete improvements
+  - Consider the target audience (customers, stakeholders, executives)
+  - Identify both strengths and areas for improvement
+  
+  AVOID:
+  - Vague feedback like "could be better" or "needs work"
+  - Overly positive feedback without substance
+  - Focusing only on negatives without acknowledging strengths
+  - Suggesting changes that don't align with Amazon PR-FAQ format
+
+# User prompt template (the actual request with variable substitution)
+user_prompt_template: |
+  You are an expert product reviewer. Review the following section of a PR-FAQ:
+
+  ## Section: {{.section_name}}
+
+  {{.content}}
+
+  Provide specific, actionable feedback on how to improve this section. Then give it a score from 0–10 based on clarity, completeness, and effectiveness.
+
+  Structure your response as:
+
+  **Strengths:**
+  - [Specific strength 1]
+  - [Specific strength 2]
+
+  **Areas for Improvement:**
+  - [Specific issue 1 with suggested fix]
+  - [Specific issue 2 with suggested fix]
+
+  **Score: X/10**
+
+  **Rationale:** [Brief explanation of the score]
+
+# Default parameters for LLM generation
+parameters:
+  temperature: 0.5
+  max_tokens: 1500
+
+# Quality criteria for evaluation
+quality_criteria:
+  - "Provides specific, actionable feedback"
+  - "Identifies both strengths and weaknesses"
+  - "Includes concrete suggestions for improvement"
+  - "Assigns appropriate score (0-10)"
+  - "Explains rationale for score"
+  - "Considers Amazon PR-FAQ format requirements"
+  - "Focuses on clarity, completeness, and effectiveness"
+
+# Section-specific guidance (can be injected based on section_name)
+section_guidance:
+  "Press Release":
+    focus_areas:
+      - "Clear headline that captures the essence"
+      - "Compelling opening paragraph (who, what, when, where, why)"
+      - "Customer problem clearly articulated"
+      - "Solution benefits explained"
+      - "Leadership quote included"
+      - "Call to action or next steps"
+    common_issues:
+      - "Too technical or jargon-heavy"
+      - "Missing customer perspective"
+      - "Unclear value proposition"
+      - "No leadership quote"
+      - "Too long or too short"
+  
+  "FAQ":
+    focus_areas:
+      - "Addresses key stakeholder questions"
+      - "Clear, concise answers"
+      - "Covers: problem, audience, mechanism, benefits, availability, cost, support"
+      - "Anticipates objections and concerns"
+      - "Appropriate level of detail"
+    common_issues:
+      - "Missing critical questions"
+      - "Answers too vague or too detailed"
+      - "Doesn't address stakeholder concerns"
+      - "Inconsistent with press release"
+      - "Too few or too many questions"
+  
+  "Customer Experience":
+    focus_areas:
+      - "Concrete user scenarios"
+      - "Before/after comparison"
+      - "Specific pain points addressed"
+      - "Measurable improvements"
+    common_issues:
+      - "Too abstract or generic"
+      - "Missing specific examples"
+      - "Unclear benefits"
+  
+  "Internal FAQ":
+    focus_areas:
+      - "Technical feasibility addressed"
+      - "Resource requirements clear"
+      - "Risks and mitigations identified"
+      - "Timeline and dependencies"
+    common_issues:
+      - "Overly optimistic estimates"
+      - "Missing risk assessment"
+      - "Unclear dependencies"
+
+# Examples of good feedback (for reference/testing)
+examples:
+  - section_name: "Press Release"
+    content: "Introducing our new product that makes things better."
+    expected_feedback_includes:
+      - "Headline is too vague"
+      - "Missing specific customer problem"
+      - "No leadership quote"
+      - "Unclear what 'makes things better' means"
+    expected_score_range: [2, 4]
+  
+  - section_name: "FAQ"
+    content: "Q: What is this? A: A new product."
+    expected_feedback_includes:
+      - "Only one question - needs more coverage"
+      - "Answer lacks detail"
+      - "Missing key questions about cost, availability, support"
+    expected_score_range: [1, 3]
+

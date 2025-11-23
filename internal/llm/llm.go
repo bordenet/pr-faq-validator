@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/bordenet/pr-faq-validator/internal/prompts"
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -30,55 +31,68 @@ func AnalyzeSection(sectionName, content string) (*Feedback, error) {
 		return nil, fmt.Errorf("OPENAI_API_KEY not set")
 	}
 
+	// Load prompt template from YAML
+	loader := prompts.DefaultLoader
+	promptTemplate, err := loader.Load("analysis/section_review.yaml")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load prompt template: %w", err)
+	}
+
+	// Render prompts with variables
+	vars := map[string]interface{}{
+		"section_name": sectionName,
+		"content":      content,
+	}
+
+	systemPrompt, err := promptTemplate.RenderSystemPrompt(vars)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render system prompt: %w", err)
+	}
+
+	userPrompt, err := promptTemplate.RenderUserPrompt(vars)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render user prompt: %w", err)
+	}
+
 	client := openai.NewClient(apiKey)
 	ctx := context.Background()
 
-	prompt := fmt.Sprintf(`
-You are an expert product reviewer. Review the following section of a PR-FAQ:
-
-## Section: %s
-
-%s
-
-Provide specific, actionable feedback on how to improve this section. Then give it a score from 0–10 based on clarity, completeness, and effectiveness.
-`, sectionName, content)
-
 	var resp openai.ChatCompletionResponse
-	var err error
+	var apiErr error
 
 	const maxAttempts = 5
 	baseDelay := time.Second
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		resp, err = client.CreateChatCompletion(
+		resp, apiErr = client.CreateChatCompletion(
 			ctx,
 			openai.ChatCompletionRequest{
 				Model: GPT4O,
 				Messages: []openai.ChatCompletionMessage{
-					{Role: openai.ChatMessageRoleSystem, Content: "You are a product manager reviewing PR-FAQs for clarity and quality."},
-					{Role: openai.ChatMessageRoleUser, Content: prompt},
+					{Role: openai.ChatMessageRoleSystem, Content: systemPrompt},
+					{Role: openai.ChatMessageRoleUser, Content: userPrompt},
 				},
 			},
 		)
 
 		// success
-		if err == nil {
+		if apiErr == nil {
 			break
 		}
 
 		// check if error is retryable
-		var apiErr *openai.APIError
-		if errors.As(err, &apiErr) {
-			switch apiErr.HTTPStatusCode {
+		var openaiErr *openai.APIError
+		if errors.As(apiErr, &openaiErr) {
+			switch openaiErr.HTTPStatusCode {
 			case http.StatusTooManyRequests, http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 				// retryable, continue
 			default:
 				// not retryable
-				return nil, fmt.Errorf("LLM error (non-retryable): %w", err)
+				return nil, fmt.Errorf("LLM error (non-retryable): %w", apiErr)
 			}
 		} else {
 			// unknown or non-API error
-			return nil, fmt.Errorf("LLM error: %w", err)
+			return nil, fmt.Errorf("LLM error: %w", apiErr)
 		}
 
 		// backoff
@@ -88,8 +102,8 @@ Provide specific, actionable feedback on how to improve this section. Then give 
 	}
 
 	// if we failed all attempts
-	if err != nil {
-		return nil, fmt.Errorf("LLM error: exceeded retries: %w", err)
+	if apiErr != nil {
+		return nil, fmt.Errorf("LLM error: exceeded retries: %w", apiErr)
 	}
 
 	text := resp.Choices[0].Message.Content

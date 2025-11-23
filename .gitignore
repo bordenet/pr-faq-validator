@@ -45,3 +45,10 @@ package-lock.json
 
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
+
+# Prompt tuning results and artifacts
+prompt_tuning_results_*/
+.env
+*.pyc
+__pycache__/
+.pytest_cache/

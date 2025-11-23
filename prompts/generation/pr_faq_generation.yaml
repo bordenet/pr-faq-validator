@@ -1,0 +1,156 @@
+# PR-FAQ Generation - Base Prompt
+# Version: 1.0.0
+# Context: Used to generate complete PR-FAQ documents following Amazon's format.
+#          This prompt is optimized through evolutionary tuning.
+
+name: "pr-faq-generation"
+version: "1.0.0"
+description: "Generates comprehensive PR-FAQ documents following Amazon's format"
+
+context: |
+  This prompt is used by the prompt tuning system to generate PR-FAQ documents.
+  It receives project details and generates both a press release and FAQ section.
+  
+  Expected variables:
+  - projectName: Name of the project or product
+  - problemDescription: Description of the customer problem being solved
+  - businessContext: Business context and strategic rationale
+  
+  Optional variables:
+  - targetAudience: Primary audience for the PR-FAQ
+  - keyBenefits: List of key benefits (comma-separated)
+  - timeline: Expected timeline or availability
+  
+  Expected output:
+  - Complete press release following Amazon format
+  - Comprehensive FAQ section addressing stakeholder questions
+
+# System-level instructions (sets the LLM's role and constraints)
+system_prompt: |
+  You are an expert at writing Amazon-style PR-FAQ documents.
+  
+  Your role is to create compelling, clear, and comprehensive PR-FAQ documents that:
+  - Start with the customer and work backwards
+  - Clearly articulate the problem and solution
+  - Provide specific, measurable benefits
+  - Anticipate and address stakeholder questions
+  - Follow Amazon's PR-FAQ format precisely
+  
+  PRESS RELEASE REQUIREMENTS:
+  - Headline: Clear, compelling, captures the essence
+  - Opening paragraph: Who, what, when, where, why
+  - Problem statement: Customer pain point clearly described
+  - Solution description: How the product/feature solves the problem
+  - Leadership quote: Authentic quote from a leader
+  - Key benefits: 3-5 specific, measurable benefits
+  - Call to action: Next steps or availability information
+  
+  FAQ REQUIREMENTS:
+  - Address key stakeholder questions in order of importance
+  - Cover: problem, audience, mechanism, benefits, availability, cost, support
+  - Provide clear, concise answers
+  - Anticipate objections and concerns
+  - Include both customer-facing and internal questions
+  
+  QUALITY STANDARDS:
+  - Use clear, precise language
+  - Avoid marketing jargon and hype
+  - Be specific with metrics and examples
+  - Maintain professional tone
+  - Ensure consistency between PR and FAQ
+
+# User prompt template (the actual request with variable substitution)
+user_prompt_template: |
+  Generate a comprehensive PR-FAQ document for the following project:
+  
+  **Project Name:** {{projectName}}
+  **Problem Description:** {{problemDescription}}
+  **Business Context:** {{businessContext}}
+  {% if targetAudience %}**Target Audience:** {{targetAudience}}{% endif %}
+  {% if keyBenefits %}**Key Benefits:** {{keyBenefits}}{% endif %}
+  {% if timeline %}**Timeline:** {{timeline}}{% endif %}
+  
+  Please create a complete PR-FAQ document with two main sections:
+  
+  ## 1. Press Release
+  
+  Write a compelling press release that follows Amazon's format:
+  - Start with a clear headline
+  - Include a strong opening paragraph
+  - Explain the customer problem and solution
+  - Include a quote from leadership
+  - Describe key benefits and features
+  - Provide availability or next steps
+  
+  ## 2. Frequently Asked Questions (FAQ)
+  
+  Create a comprehensive FAQ section that addresses:
+  - **What problem does this solve?** - Detailed explanation of the customer pain point
+  - **Who is this for?** - Target audience and use cases
+  - **How does it work?** - High-level mechanism and user experience
+  - **What are the key benefits?** - Specific, measurable advantages
+  - **When will this be available?** - Timeline and rollout plan
+  - **How much does it cost?** - Pricing model or cost structure
+  - **What support is available?** - Documentation, training, and support channels
+  - **What are the risks or limitations?** - Honest assessment of constraints
+  - **How does this compare to alternatives?** - Competitive positioning
+  - **What's the long-term vision?** - Future roadmap and evolution
+  
+  Ensure the press release and FAQ are consistent, specific, and customer-focused.
+
+# Default parameters for LLM generation
+parameters:
+  temperature: 0.7
+  max_tokens: 4096
+
+# Quality criteria for evaluation
+quality_criteria:
+  - "Press release follows Amazon format with all required sections"
+  - "Headline is clear and compelling"
+  - "Customer problem is clearly articulated"
+  - "Solution benefits are specific and measurable"
+  - "Leadership quote is authentic and meaningful"
+  - "FAQ addresses all key stakeholder questions"
+  - "FAQ answers are clear, concise, and complete"
+  - "Consistency between press release and FAQ"
+  - "Professional tone without marketing hype"
+  - "Specific examples and metrics included"
+  - "No AI slop (em-dashes, flowery language, clichés)"
+
+# Validation rules for generated content
+validation_rules:
+  press_release:
+    required_elements:
+      - "Headline (# or ##)"
+      - "Opening paragraph (who, what, when, where, why)"
+      - "Problem statement"
+      - "Solution description"
+      - "Leadership quote"
+      - "Key benefits (3-5 items)"
+    min_length: 300
+    max_length: 1500
+  
+  faq:
+    required_questions:
+      - "problem"
+      - "audience"
+      - "mechanism"
+      - "benefits"
+      - "availability"
+      - "cost"
+      - "support"
+    min_questions: 7
+    max_questions: 15
+    min_answer_length: 50
+
+# Examples of good PR-FAQs (for reference/testing)
+examples:
+  - project: "One-Click Deployment Pipeline"
+    problem: "Developers spend hours manually deploying code, leading to errors and delays"
+    context: "Improve developer productivity and reduce deployment failures"
+    expected_elements:
+      - "Specific time savings mentioned"
+      - "Error reduction metrics"
+      - "Clear deployment workflow described"
+      - "FAQ addresses security and rollback"
+
