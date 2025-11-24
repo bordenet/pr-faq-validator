@@ -50,6 +50,7 @@ package-lock.json
 prompt_tuning_results_*/
 .pr-faq-validator/
 profiling_report.json
+docs/EXPERIMENT_*_*.md
 .env
 *.pyc
 __pycache__/
