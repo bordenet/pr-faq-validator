@@ -51,10 +51,17 @@ class EvolutionaryTuner:
             save_prompts(self.config, current_prompts)
         
         # Run baseline evaluation
+        print(f"[DEBUG] Before baseline eval - current_prompts keys: {list(current_prompts.keys())}")
+        print(f"[DEBUG] Before baseline eval - prompt length: {len(current_prompts.get('pr_faq_generation', ''))}")
+        print(f"[DEBUG] Before baseline eval - prompt starts with: {current_prompts.get('pr_faq_generation', '')[:100]}")
+
         baseline_results = await self._evaluate_prompts(current_prompts, iteration=0)
         self.best_score = baseline_results["aggregate_scores"]["overall"]
         self.best_prompts = current_prompts.copy()
-        
+
+        print(f"[DEBUG] After baseline eval - current_prompts length: {len(current_prompts.get('pr_faq_generation', ''))}")
+        print(f"[DEBUG] After baseline eval - prompt starts with: {current_prompts.get('pr_faq_generation', '')[:100]}")
+        print(f"[DEBUG] After baseline eval - best_prompts length: {len(self.best_prompts.get('pr_faq_generation', ''))}")
         print(f"Baseline score: {self.best_score:.2f}")
         
         # Evolutionary loop
@@ -62,7 +69,13 @@ class EvolutionaryTuner:
             print(f"\n=== Iteration {iteration}/{max_iterations} ===")
 
             # Mutate prompts
+            print(f"[DEBUG] Iteration {iteration} - Before mutation - current_prompts length: {len(current_prompts.get('pr_faq_generation', ''))}")
+            print(f"[DEBUG] Iteration {iteration} - Before mutation - prompt starts with: {current_prompts.get('pr_faq_generation', '')[:100]}")
+
             mutated_prompts = await self._mutate_prompts(current_prompts, iteration)
+
+            print(f"[DEBUG] Iteration {iteration} - After mutation - mutated_prompts length: {len(mutated_prompts.get('pr_faq_generation', ''))}")
+            print(f"[DEBUG] Iteration {iteration} - After mutation - prompt starts with: {mutated_prompts.get('pr_faq_generation', '')[:100]}")
 
             # Evaluate mutated prompts
             results = await self._evaluate_prompts(mutated_prompts, iteration)
@@ -131,21 +144,21 @@ class EvolutionaryTuner:
         # Temporarily save prompts for simulation
         original_prompts = load_prompts(self.config)
         save_prompts(self.config, prompts)
-        
+
         try:
             # Run simulation
             simulation_results = await self.simulator.run_simulation(iteration)
-            
+
             # Evaluate results
             evaluation_results = await self.evaluator.evaluate_results(simulation_results)
-            
+
             # Save results
             self.simulator.save_results(simulation_results, iteration)
             self.evaluator.save_evaluation(evaluation_results, iteration)
-            
+
             return evaluation_results
         finally:
-            # Restore original prompts if evaluation failed
+            # Restore original prompts after evaluation (will be overwritten if this was an improvement)
             if iteration > 0:
                 save_prompts(self.config, original_prompts)
     
@@ -160,18 +173,25 @@ Current prompt:
 {prompt_content}
 
 Based on iteration {iteration}, suggest an improved version of this prompt that will:
-1. Generate higher quality press releases following Amazon's PR-FAQ format
+1. Generate higher quality press releases following Amazon's format
 2. Create more comprehensive and useful FAQ sections
 3. Better address stakeholder questions and concerns
 4. Maintain clarity and structure
 
 Provide ONLY the improved prompt text, without any explanation or meta-commentary.
 """
-            
+
+            print(f"[DEBUG-TUNER] Mutation prompt length: {len(mutation_prompt)}")
+            print(f"[DEBUG-TUNER] Mutation prompt first 150 chars: {mutation_prompt[:150]}")
+            print(f"[DEBUG-TUNER] Has 'Current prompt:': {'Current prompt:' in mutation_prompt}")
+
             mutated_content = await self.mutation_client.generate(
                 mutation_prompt,
                 temperature=0.8
             )
+
+            print(f"[DEBUG-TUNER] Mutated content length: {len(mutated_content)}")
+            print(f"[DEBUG-TUNER] Mutated content first 150 chars: {mutated_content[:150]}")
             
             mutated[prompt_name] = mutated_content.strip()
         

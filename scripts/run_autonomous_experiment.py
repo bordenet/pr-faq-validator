@@ -41,22 +41,37 @@ class AutonomousExperiment:
         if self.use_real_api:
             print("Using real API - auto-responder not needed")
             return True
-        
+
         print("Starting auto-responder in background...")
         try:
+            # Ensure log directory exists
+            Path(".pr-faq-validator").mkdir(parents=True, exist_ok=True)
+
+            # Write logs to files for debugging
+            stdout_log = open(".pr-faq-validator/auto_responder_stdout.log", "w")
+            stderr_log = open(".pr-faq-validator/auto_responder_stderr.log", "w")
+
             self.auto_responder_process = subprocess.Popen(
-                [sys.executable, "scripts/auto_respond_llm.py", "--continuous", "--interval", "0.2"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
+                [sys.executable, "-u", "scripts/auto_respond_llm.py", "--continuous", "--interval", "0.2"],
+                stdout=stdout_log,
+                stderr=stderr_log,
+                text=True,
+                bufsize=1  # Line buffered
             )
             time.sleep(2)  # Give it time to start
-            
+
             if self.auto_responder_process.poll() is None:
                 print("✅ Auto-responder started successfully")
+                print("   Logs: .pr-faq-validator/auto_responder_stdout.log")
                 return True
             else:
                 print("❌ Auto-responder failed to start")
+                # Read error logs
+                stderr_log.flush()
+                with open(".pr-faq-validator/auto_responder_stderr.log", "r") as f:
+                    error_output = f.read()
+                if error_output:
+                    print(f"   Error output: {error_output}")
                 return False
         except Exception as e:
             print(f"❌ Error starting auto-responder: {e}")

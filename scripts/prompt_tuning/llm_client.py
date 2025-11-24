@@ -123,6 +123,10 @@ A: Comprehensive documentation, tutorials, and dedicated support channels will b
         return f"Mock LLM response (seed: {seed}). This is a simulated output for testing purposes."
 
 
+# Global request counter shared across all AssistantLLMClient instances
+# to prevent request ID collisions
+_global_request_counter = 0
+
 class AssistantLLMClient(LLMClient):
     """
     File-based LLM client for AI assistant communication.
@@ -137,7 +141,6 @@ class AssistantLLMClient(LLMClient):
     def __init__(self, model: str = "assistant-llm", timeout: int = 300):
         self.model = model
         self.timeout = timeout
-        self.request_counter = 0
 
         # Create request/response directories
         self.base_dir = Path.cwd() / ".pr-faq-validator"
@@ -149,8 +152,9 @@ class AssistantLLMClient(LLMClient):
 
     async def generate(self, prompt: str, **kwargs) -> str:
         """Generate text via file-based communication with AI assistant."""
-        self.request_counter += 1
-        request_id = self.request_counter
+        global _global_request_counter
+        _global_request_counter += 1
+        request_id = _global_request_counter
 
         # Prepare request
         request_data = {

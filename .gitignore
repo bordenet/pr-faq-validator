@@ -51,6 +51,7 @@ prompt_tuning_results_*/
 .pr-faq-validator/
 profiling_report.json
 docs/EXPERIMENT_*_*.md
+progressive_optimization_report_*.json
 .env
 *.pyc
 __pycache__/
