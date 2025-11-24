@@ -104,10 +104,11 @@ class TestCreateLLMClient:
         with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
             create_llm_client(provider="anthropic", mock=False)
 
-    def test_unsupported_provider(self):
+    def test_unsupported_provider(self, monkeypatch):
         """Test that unsupported provider raises error."""
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         with pytest.raises(ValueError, match="Unsupported LLM provider"):
-            create_llm_client(provider="unsupported", mock=True)
+            create_llm_client(provider="unsupported", mock=False)
 
 
 @pytest.mark.asyncio
