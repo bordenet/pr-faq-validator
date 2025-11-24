@@ -3,6 +3,9 @@
 import os
 import json
 import hashlib
+import time
+import asyncio
+from pathlib import Path
 from typing import Optional, Dict, Any
 from abc import ABC, abstractmethod
 
@@ -120,35 +123,98 @@ A: Comprehensive documentation, tutorials, and dedicated support channels will b
         return f"Mock LLM response (seed: {seed}). This is a simulated output for testing purposes."
 
 
+class AssistantLLMClient(LLMClient):
+    """
+    File-based LLM client for AI assistant communication.
+
+    Enables AI assistant (Claude) to act as the LLM without API keys.
+    Writes requests to .pr-faq-validator/llm_requests/ and polls for
+    responses in .pr-faq-validator/llm_responses/.
+
+    Based on bloginator's AssistantLLMClient implementation.
+    """
+
+    def __init__(self, model: str = "assistant-llm", timeout: int = 300):
+        self.model = model
+        self.timeout = timeout
+        self.request_counter = 0
+
+        # Create request/response directories
+        self.base_dir = Path.cwd() / ".pr-faq-validator"
+        self.request_dir = self.base_dir / "llm_requests"
+        self.response_dir = self.base_dir / "llm_responses"
+
+        self.request_dir.mkdir(parents=True, exist_ok=True)
+        self.response_dir.mkdir(parents=True, exist_ok=True)
+
+    async def generate(self, prompt: str, **kwargs) -> str:
+        """Generate text via file-based communication with AI assistant."""
+        self.request_counter += 1
+        request_id = self.request_counter
+
+        # Prepare request
+        request_data = {
+            "request_id": request_id,
+            "model": self.model,
+            "temperature": kwargs.get("temperature", 0.3),
+            "max_tokens": kwargs.get("max_tokens", 3000),
+            "system_prompt": kwargs.get("system_prompt"),
+            "prompt": prompt,
+            "timestamp": time.time()
+        }
+
+        # Write request file
+        request_file = self.request_dir / f"request_{request_id:04d}.json"
+        with open(request_file, 'w') as f:
+            json.dump(request_data, f, indent=2)
+
+        # Poll for response
+        response_file = self.response_dir / f"response_{request_id:04d}.json"
+        start_time = time.time()
+
+        while time.time() - start_time < self.timeout:
+            if response_file.exists():
+                with open(response_file, 'r') as f:
+                    response_data = json.load(f)
+                return response_data["content"]
+
+            await asyncio.sleep(0.5)  # Poll every 500ms
+
+        raise TimeoutError(
+            f"No response received for request {request_id} after {self.timeout}s. "
+            f"Expected response file: {response_file}"
+        )
+
+
 class AnthropicClient(LLMClient):
     """Anthropic Claude client."""
-    
+
     def __init__(self, model: str = "claude-3-5-sonnet-20241022", api_key: Optional[str] = None):
         self.model = model
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
-        
+
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY not found in environment")
-    
+
     async def generate(self, prompt: str, **kwargs) -> str:
         """Generate text using Anthropic API."""
         try:
             import anthropic
         except ImportError:
             raise ImportError("anthropic package not installed. Run: pip install anthropic")
-        
+
         client = anthropic.AsyncAnthropic(api_key=self.api_key)
-        
+
         temperature = kwargs.get("temperature", 1.0)
         max_tokens = kwargs.get("max_tokens", 4096)
-        
+
         message = await client.messages.create(
             model=self.model,
             max_tokens=max_tokens,
             temperature=temperature,
             messages=[{"role": "user", "content": prompt}]
         )
-        
+
         return message.content[0].text
 
 
@@ -156,7 +222,11 @@ def create_llm_client(provider: str = "anthropic", model: str = "claude-3-5-sonn
     """Factory function to create LLM client."""
     if mock or os.getenv("AI_AGENT_MOCK_MODE", "false").lower() == "true":
         return MockLLMClient(model=model)
-    
+
+    # Check for assistant mode (file-based communication)
+    if provider == "assistant" or os.getenv("LLM_PROVIDER") == "assistant":
+        return AssistantLLMClient(model=model)
+
     if provider == "anthropic":
         return AnthropicClient(model=model)
     else:

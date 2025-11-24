@@ -48,7 +48,11 @@ package-lock.json
 
 # Prompt tuning results and artifacts
 prompt_tuning_results_*/
+.pr-faq-validator/
+profiling_report.json
 .env
 *.pyc
 __pycache__/
 .pytest_cache/
+htmlcov/
+.coverage

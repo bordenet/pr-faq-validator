@@ -10,12 +10,13 @@ from prompt_tuning_config import PromptTuningConfig, load_prompts, save_prompts
 from llm_client import create_llm_client
 from prompt_simulator import PromptSimulator
 from quality_evaluator import QualityEvaluator
+from convergence_detector import ConvergenceDetector, ConvergenceConfig
 
 
 class EvolutionaryTuner:
     """Evolutionary optimization for PR-FAQ prompts."""
-    
-    def __init__(self, config: PromptTuningConfig):
+
+    def __init__(self, config: PromptTuningConfig, enable_convergence_detection: bool = True):
         self.config = config
         self.mutation_client = create_llm_client(
             provider=config.llm_provider,
@@ -24,10 +25,19 @@ class EvolutionaryTuner:
         )
         self.simulator = PromptSimulator(config)
         self.evaluator = QualityEvaluator(config)
-        
+
         self.best_score = 0.0
         self.best_prompts = {}
         self.iteration_history = []
+
+        # Convergence detection
+        self.convergence_detector = ConvergenceDetector(
+            ConvergenceConfig(
+                no_improvement_threshold=5,
+                min_improvement_percent=0.1,
+                enable_early_stop=enable_convergence_detection
+            )
+        ) if enable_convergence_detection else None
     
     async def run_evolution(self, max_iterations: Optional[int] = None) -> Dict[str, Any]:
         """Run evolutionary optimization."""
@@ -50,37 +60,55 @@ class EvolutionaryTuner:
         # Evolutionary loop
         for iteration in range(1, max_iterations + 1):
             print(f"\n=== Iteration {iteration}/{max_iterations} ===")
-            
+
             # Mutate prompts
             mutated_prompts = await self._mutate_prompts(current_prompts, iteration)
-            
+
             # Evaluate mutated prompts
             results = await self._evaluate_prompts(mutated_prompts, iteration)
             current_score = results["aggregate_scores"]["overall"]
-            
+
             print(f"Current score: {current_score:.2f}")
-            
+
             # Keep or discard mutation
-            if current_score > self.best_score:
+            improved = current_score > self.best_score
+            if improved:
                 print(f"✓ Improvement! {self.best_score:.2f} → {current_score:.2f}")
                 self.best_score = current_score
                 self.best_prompts = mutated_prompts.copy()
                 current_prompts = mutated_prompts
-                
+
                 # Save improved prompts
                 save_prompts(self.config, self.best_prompts)
             else:
                 print(f"✗ No improvement. Keeping previous prompts.")
-            
+
             # Record iteration
             self.iteration_history.append({
                 "iteration": iteration,
                 "score": current_score,
                 "best_score": self.best_score,
-                "improved": current_score > self.best_score
+                "improved": improved
             })
+
+            # Update convergence detector
+            if self.convergence_detector:
+                convergence_status = self.convergence_detector.update(iteration, current_score, improved)
+
+                # Check for early stopping
+                if self.convergence_detector.should_stop():
+                    print(f"\n🎯 Convergence detected at iteration {convergence_status['convergence_iteration']}")
+                    print(f"No improvement for {convergence_status['no_improvement_count']} consecutive iterations.")
+                    print(f"Stopping early. Saved {max_iterations - iteration} iterations.")
+                    break
         
+        # Print convergence summary
+        if self.convergence_detector:
+            self.convergence_detector.print_summary()
+
         # Save final results
+        convergence_status = self.convergence_detector.get_status() if self.convergence_detector else {}
+
         final_results = {
             "project": self.config.project_name,
             "timestamp": datetime.now().isoformat(),
@@ -89,11 +117,13 @@ class EvolutionaryTuner:
             "final_score": self.best_score,
             "improvement": self.best_score - baseline_results["aggregate_scores"]["overall"],
             "iteration_history": self.iteration_history,
-            "best_prompts": self.best_prompts
+            "best_prompts": self.best_prompts,
+            "convergence": convergence_status,
+            "recommendations": self.convergence_detector.get_recommendations() if self.convergence_detector else []
         }
-        
+
         self._save_final_results(final_results)
-        
+
         return final_results
     
     async def _evaluate_prompts(self, prompts: Dict[str, str], iteration: int) -> Dict[str, Any]:

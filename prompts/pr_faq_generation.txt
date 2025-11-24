@@ -1,0 +1,57 @@
+Generate a comprehensive PR-FAQ document following Amazon's format with emphasis on specificity and measurable outcomes.
+
+Project: {projectName}
+Problem: {problemDescription}
+Context: {businessContext}
+
+CRITICAL REQUIREMENTS:
+
+1. QUANTITATIVE SPECIFICITY
+   - Include concrete numbers and percentages in all claims
+   - Provide measurable outcomes (e.g., "reduces time from X to Y")
+   - Reference specific metrics (e.g., "68% cart abandonment rate")
+   - Use data-driven examples throughout
+
+2. AUTHENTIC CUSTOMER EVIDENCE
+   - Include customer quotes with measurable outcomes
+   - Format: "Quote with specific metric" - Name, Title, Company
+   - Example: "We reduced deployment time from 4 hours to 15 minutes" - Jane Smith, CTO
+   - Minimum 1-2 quotes with quantitative results
+
+3. TECHNICAL DEPTH
+   - Explain HOW the solution works (mechanism)
+   - Include implementation details
+   - Address technical concerns in FAQ
+   - Provide architecture/workflow insights
+
+4. TIMELINE CLARITY
+   - Specify availability dates or phases
+   - Outline implementation timeline
+   - Set clear expectations for rollout
+
+PRESS RELEASE STRUCTURE:
+- Headline: Clear, compelling, captures essence
+- Opening: Who, what, when, where, why with SPECIFIC METRICS
+- Problem: Customer pain with QUANTIFIED impact
+- Solution: How it works with MEASURABLE benefits
+- Leadership Quote: Authentic with strategic context
+- Key Benefits: 3-5 benefits with SPECIFIC NUMBERS
+- Customer Quote: Real outcome with METRICS
+- Availability: Clear timeline
+
+FAQ REQUIREMENTS:
+- Address in order: problem, audience, mechanism, benefits, availability, cost, support
+- Provide SPECIFIC answers with numbers where applicable
+- Include technical implementation details
+- Anticipate objections with data-driven responses
+- Minimum 7 questions, maximum 15
+
+QUALITY STANDARDS:
+- Avoid generic statements - be SPECIFIC
+- Every claim should have supporting data
+- Use clear, precise language
+- No marketing jargon or hype
+- Maintain professional, authentic tone
+- Ensure consistency between PR and FAQ
+
+Create a press release and FAQ that clearly articulates the customer problem, solution, and benefits with maximum specificity and measurable outcomes.

@@ -44,104 +44,93 @@ class QualityEvaluator:
         return evaluation_results
     
     async def _evaluate_test_case(self, test_result: Dict[str, Any]) -> Dict[str, Any]:
-        """Evaluate a single test case result."""
+        """Evaluate a single test case result using comprehensive LLM evaluation."""
         generated_content = test_result.get("generated_content", {})
-        
-        # Evaluate press release quality
-        pr_score = await self._evaluate_press_release(
-            generated_content.get("press_release", "")
-        )
-        
-        # Evaluate FAQ quality
-        faq_score = await self._evaluate_faq(
-            generated_content.get("faq", "")
-        )
-        
-        # Calculate overall score
-        weights = self.config.validation_criteria
-        overall_score = (
-            pr_score.get("score", 0) * weights.get("press_release_quality", 0.3) +
-            faq_score.get("score", 0) * weights.get("faq_completeness", 0.25) +
-            pr_score.get("clarity", 0) * weights.get("clarity_score", 0.25) +
-            pr_score.get("structure", 0) * weights.get("structure_adherence", 0.2)
-        )
-        
+        press_release = generated_content.get("press_release", "")
+        faq = generated_content.get("faq", "")
+
+        if not press_release and not faq:
+            return {
+                "test_case_id": test_result.get("test_case_id"),
+                "test_case_name": test_result.get("test_case_name"),
+                "overall_score": 0.0,
+                "press_release_score": {"score": 0, "clarity": 0, "structure": 0, "feedback": "No content generated"},
+                "faq_score": {"score": 0, "completeness": 0, "feedback": "No content generated"},
+                "timestamp": datetime.now().isoformat()
+            }
+
+        # Comprehensive evaluation prompt (bloginator-style)
+        evaluation_prompt = f"""Evaluate the following PR-FAQ content comprehensively.
+
+PRESS RELEASE:
+{press_release}
+
+FAQ:
+{faq}
+
+Provide a comprehensive evaluation with:
+1. overall_score (0-5 scale, floating point)
+2. press_release_quality (0-5 scale)
+3. faq_completeness (0-5 scale)
+4. clarity_score (0-5 scale)
+5. structure_adherence (0-5 scale)
+6. content_quality breakdown (clarity, depth, nuance, specificity - each 0-5)
+7. slop_violations (critical, high, medium, low - arrays)
+8. voice_analysis (authenticity_score, strengths, concerns)
+9. feedback (detailed text)
+10. strengths (array of strings)
+11. improvements (array of strings)
+12. evolutionary_strategy (prompt_to_modify, specific_changes, priority, expected_impact)
+
+Return ONLY valid JSON matching this structure.
+"""
+
+        response = await self.evaluator_client.generate(evaluation_prompt, temperature=0.3)
+
+        try:
+            # Parse JSON response (may be wrapped in content field for file-based LLM)
+            evaluation = json.loads(response)
+        except json.JSONDecodeError:
+            # Fallback scoring
+            evaluation = {
+                "overall_score": 3.5,
+                "press_release_quality": 3.5,
+                "faq_completeness": 3.5,
+                "clarity_score": 3.5,
+                "structure_adherence": 3.5,
+                "feedback": "Evaluation parsing failed",
+                "strengths": [],
+                "improvements": []
+            }
+
+        # Convert 0-5 scores to 0-100 for compatibility
+        overall_score = evaluation.get("overall_score", 0) * 20  # 5.0 -> 100
+
         return {
             "test_case_id": test_result.get("test_case_id"),
             "test_case_name": test_result.get("test_case_name"),
             "overall_score": overall_score,
-            "press_release_score": pr_score,
-            "faq_score": faq_score,
+            "press_release_score": {
+                "score": evaluation.get("press_release_quality", 0) * 20,
+                "clarity": evaluation.get("clarity_score", 0) * 20,
+                "structure": evaluation.get("structure_adherence", 0) * 20,
+                "feedback": evaluation.get("feedback", "")
+            },
+            "faq_score": {
+                "score": evaluation.get("faq_completeness", 0) * 20,
+                "completeness": evaluation.get("faq_completeness", 0) * 20,
+                "feedback": evaluation.get("feedback", "")
+            },
+            "content_quality": evaluation.get("content_quality", {}),
+            "slop_violations": evaluation.get("slop_violations", {}),
+            "voice_analysis": evaluation.get("voice_analysis", {}),
+            "strengths": evaluation.get("strengths", []),
+            "improvements": evaluation.get("improvements", []),
+            "evolutionary_strategy": evaluation.get("evolutionary_strategy", {}),
             "timestamp": datetime.now().isoformat()
         }
     
-    async def _evaluate_press_release(self, press_release: str) -> Dict[str, Any]:
-        """Evaluate press release quality."""
-        if not press_release:
-            return {"score": 0, "clarity": 0, "structure": 0, "feedback": "No press release generated"}
-        
-        evaluation_prompt = f"""Evaluate the following press release on a scale of 0-100:
 
-{press_release}
-
-Provide scores for:
-1. Overall quality (0-100)
-2. Clarity (0-100)
-3. Structure adherence to Amazon PR-FAQ format (0-100)
-4. Specific feedback on strengths and areas for improvement
-
-Return your evaluation as JSON with keys: score, clarity, structure, feedback, strengths (list), improvements (list)
-"""
-        
-        response = await self.evaluator_client.generate(evaluation_prompt, temperature=0.3)
-        
-        try:
-            # Try to parse JSON response
-            evaluation = json.loads(response)
-        except json.JSONDecodeError:
-            # Fallback to basic scoring if JSON parsing fails
-            evaluation = {
-                "score": 75,
-                "clarity": 75,
-                "structure": 75,
-                "feedback": response[:200],
-                "strengths": [],
-                "improvements": []
-            }
-        
-        return evaluation
-    
-    async def _evaluate_faq(self, faq: str) -> Dict[str, Any]:
-        """Evaluate FAQ quality."""
-        if not faq:
-            return {"score": 0, "completeness": 0, "feedback": "No FAQ generated"}
-        
-        evaluation_prompt = f"""Evaluate the following FAQ section on a scale of 0-100:
-
-{faq}
-
-Provide scores for:
-1. Overall quality (0-100)
-2. Completeness - does it address key questions? (0-100)
-3. Specific feedback on strengths and areas for improvement
-
-Return your evaluation as JSON with keys: score, completeness, feedback, strengths (list), improvements (list)
-"""
-        
-        response = await self.evaluator_client.generate(evaluation_prompt, temperature=0.3)
-        
-        try:
-            evaluation = json.loads(response)
-        except json.JSONDecodeError:
-            evaluation = {
-                "score": 75,
-                "completeness": 75,
-                "feedback": response[:200],
-                "strengths": [],
-                "improvements": []
-            }
-        
-        return evaluation
     
     def _calculate_aggregate_scores(self, evaluations: List[Dict[str, Any]]) -> Dict[str, float]:
         """Calculate aggregate scores across all test cases."""

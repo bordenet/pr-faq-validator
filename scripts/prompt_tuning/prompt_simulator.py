@@ -92,21 +92,22 @@ class PromptSimulator:
     
     def _extract_section(self, content: str, section_name: str) -> str:
         """Extract a specific section from generated content."""
-        # Simple extraction - look for section headers
-        lines = content.split('\n')
-        section_lines = []
-        in_section = False
-        
-        for line in lines:
-            if section_name.lower() in line.lower() and (line.startswith('#') or line.startswith('##')):
-                in_section = True
-                continue
-            elif in_section and line.startswith('#'):
-                break
-            elif in_section:
-                section_lines.append(line)
-        
-        return '\n'.join(section_lines).strip()
+        # For now, treat the entire content as both press release and FAQ
+        # since the auto-responder generates complete PR-FAQ documents
+        # TODO: Implement proper section extraction when prompts generate separate sections
+
+        # If looking for FAQ and content contains "Q:" or "FAQ", extract that part
+        if section_name.lower() == "faq":
+            if "# Frequently Asked Questions" in content or "## Q:" in content:
+                faq_start = content.find("# Frequently Asked Questions")
+                if faq_start == -1:
+                    faq_start = content.find("## Q:")
+                if faq_start >= 0:
+                    return content[faq_start:].strip()
+
+        # Otherwise return the full content
+        # This ensures evaluator gets content to evaluate
+        return content.strip()
     
     def _get_default_prompt(self) -> str:
         """Get default PR-FAQ generation prompt."""
