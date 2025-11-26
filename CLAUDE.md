@@ -109,3 +109,67 @@ Sample documents demonstrate scoring range:
 - `example_prfaq_1.md`: ~77/100 (high-quality example with metrics-rich quotes)
 
 The validator is intentionally demanding - scores above 80 are rare and indicate publication-ready quality.
+
+## Coding Conventions (MANDATORY)
+
+**All code in this repository MUST follow the style guides without exception.**
+
+### Go Code
+
+See [docs/GO_STYLE_GUIDE.md](docs/GO_STYLE_GUIDE.md) for complete requirements.
+
+**Key Requirements:**
+- All code must pass `golangci-lint run` with zero errors
+- Test coverage must be **≥80%** for core logic
+- Functions must be **≤50 lines** (max 100)
+- Files must be **≤400 lines**
+- All exported functions must have doc comments
+- Error wrapping with `fmt.Errorf("context: %w", err)`
+- Table-driven tests for all test cases
+
+**Pre-commit checks:**
+```bash
+golangci-lint run
+go test -race -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out | grep total
+```
+
+### Python Code
+
+See [docs/PYTHON_STYLE_GUIDE.md](docs/PYTHON_STYLE_GUIDE.md) for complete requirements.
+
+**Key Requirements:**
+- All code must pass `pylint` with score **≥9.5/10**
+- All code must pass `mypy --ignore-missing-imports`
+- Test coverage must be **≥50%** overall
+- Functions must be **≤50 lines** (max 100)
+- Files must be **≤400 lines**
+- All functions must have type annotations
+- All public functions must have docstrings (Google style)
+- Line length: **120 characters**
+
+**Pre-commit checks:**
+```bash
+black --line-length=120 --check scripts/
+isort --profile black --line-length 120 --check-only scripts/
+pylint scripts/ --fail-under=9.5
+mypy scripts/ --ignore-missing-imports
+pytest tests/python/ --cov=scripts --cov-fail-under=50
+```
+
+### CI Quality Gates
+
+All PRs must pass:
+1. **Go linting** - golangci-lint with zero errors
+2. **Go tests** - All tests pass with race detection
+3. **Go coverage** - ≥80% coverage on core packages
+4. **Python linting** - pylint ≥9.5, mypy passes
+5. **Python tests** - ≥50% coverage
+6. **Security scan** - gosec with no high-severity issues
+
+### Enforcement
+
+- Pre-commit hooks enforce formatting and linting
+- CI blocks merges that fail quality gates
+- Coverage reports uploaded to Codecov
+- No exceptions without explicit approval and documented justification

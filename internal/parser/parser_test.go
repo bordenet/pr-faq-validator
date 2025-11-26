@@ -697,6 +697,205 @@ Available starting next month at website.com.`,
 	}
 }
 
+// Test categorizeIssues function
+func TestCategorizeIssues(t *testing.T) {
+	tests := []struct {
+		name     string
+		issues   []string
+		expected map[string][]string
+	}{
+		{
+			name:   "headline issue",
+			issues: []string{"Headline is too long"},
+			expected: map[string][]string{
+				"Headline & Title": {"Headline is too long"},
+			},
+		},
+		{
+			name:   "hook issue",
+			issues: []string{"Opening hook is weak"},
+			expected: map[string][]string{
+				"Opening Hook": {"Opening hook is weak"},
+			},
+		},
+		{
+			name:   "5Ws issue",
+			issues: []string{"Missing who in the story"},
+			expected: map[string][]string{
+				"5 Ws Coverage": {"Missing who in the story"},
+			},
+		},
+		{
+			name:   "quote issue",
+			issues: []string{"Quote lacks metrics"},
+			expected: map[string][]string{
+				"Customer Evidence": {"Quote lacks metrics"},
+			},
+		},
+		{
+			name:   "fluff issue",
+			issues: []string{"Too much marketing fluff"},
+			expected: map[string][]string{
+				"Professional Tone": {"Too much marketing fluff"},
+			},
+		},
+		{
+			name:   "structure issue",
+			issues: []string{"Poor paragraph structure"},
+			expected: map[string][]string{
+				"Document Structure": {"Poor paragraph structure"},
+			},
+		},
+		{
+			name:   "readability issue",
+			issues: []string{"Sentence too long"},
+			expected: map[string][]string{
+				"Writing Quality": {"Sentence too long"},
+			},
+		},
+		{
+			name:   "general issue",
+			issues: []string{"Some other problem"},
+			expected: map[string][]string{
+				"General": {"Some other problem"},
+			},
+		},
+		{
+			name:   "multiple issues",
+			issues: []string{"Headline too long", "Missing who", "Some other issue"},
+			expected: map[string][]string{
+				"Headline & Title": {"Headline too long"},
+				"5 Ws Coverage":    {"Missing who"},
+				"General":          {"Some other issue"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := categorizeIssues(tt.issues)
+			for category, expectedIssues := range tt.expected {
+				if len(result[category]) != len(expectedIssues) {
+					t.Errorf("category %q: got %d issues, want %d", category, len(result[category]), len(expectedIssues))
+				}
+			}
+		})
+	}
+}
+
+// Test isPressReleaseContent function
+func TestIsPressReleaseContent(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    bool
+	}{
+		{
+			name:    "with date and announce",
+			content: "January 15, 2025 - Company announces new product today",
+			want:    true,
+		},
+		{
+			name:    "with for immediate release",
+			content: "FOR IMMEDIATE RELEASE: New product available",
+			want:    true,
+		},
+		{
+			name:    "with business wire",
+			content: "BUSINESS WIRE - Company launches product",
+			want:    true,
+		},
+		{
+			name:    "with today announced",
+			content: "Company today announced a new initiative",
+			want:    true,
+		},
+		{
+			name:    "with is excited to announce",
+			content: "We are is excited to announce our new product",
+			want:    true,
+		},
+		{
+			name:    "plain text without PR indicators",
+			content: "This is just some regular text without any special indicators",
+			want:    false,
+		},
+		{
+			name:    "date without announce words",
+			content: "January 15, 2025 - Regular meeting notes",
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isPressReleaseContent(tt.content)
+			if got != tt.want {
+				t.Errorf("isPressReleaseContent() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// Test isNumberedFAQQuestion function
+func TestIsNumberedFAQQuestion(t *testing.T) {
+	tests := []struct {
+		name   string
+		header string
+		want   bool
+	}{
+		{
+			name:   "numbered with period",
+			header: "1. What is this product?",
+			want:   true,
+		},
+		{
+			name:   "numbered with parenthesis",
+			header: "2) How does it work?",
+			want:   true,
+		},
+		{
+			name:   "Q prefix with period",
+			header: "Q1. What are the benefits?",
+			want:   true,
+		},
+		{
+			name:   "Q prefix with parenthesis",
+			header: "Q2) Who is this for?",
+			want:   true,
+		},
+		{
+			name:   "Question prefix",
+			header: "Question 3: When is it available?",
+			want:   true,
+		},
+		{
+			name:   "plain question",
+			header: "What is this product?",
+			want:   false,
+		},
+		{
+			name:   "just a number",
+			header: "1",
+			want:   false,
+		},
+		{
+			name:   "empty string",
+			header: "",
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isNumberedFAQQuestion(tt.header)
+			if got != tt.want {
+				t.Errorf("isNumberedFAQQuestion(%q) = %v, want %v", tt.header, got, tt.want)
+			}
+		})
+	}
+}
+
 // Benchmark tests for performance-critical functions
 func BenchmarkDetectMetricsInText(b *testing.B) {
 	text := "We improved performance by 75% and reduced costs by 50%, achieving 10x throughput with $1.5M in savings."
@@ -729,5 +928,142 @@ Available starting next month at website.com.`
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		comprehensivePRAnalysis(content, "Company Launches New Product", 8)
+	}
+}
+
+// Test getScoreStatus function
+func TestGetScoreStatus(t *testing.T) {
+	tests := []struct {
+		name     string
+		score    int
+		maxScore int
+		want     string
+	}{
+		{"excellent", 9, 10, "🟢 Excellent"},
+		{"good", 7, 10, "🟡 Good"},
+		{"needs work", 5, 10, "🟠 Needs Work"},
+		{"critical", 2, 10, "🔴 Critical"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getScoreStatus(tt.score, tt.maxScore)
+			if got != tt.want {
+				t.Errorf("getScoreStatus(%d, %d) = %q, want %q", tt.score, tt.maxScore, got, tt.want)
+			}
+		})
+	}
+}
+
+// Test getPriority function
+func TestGetPriority(t *testing.T) {
+	tests := []struct {
+		name     string
+		score    int
+		maxScore int
+		want     string
+	}{
+		{"low priority", 9, 10, "Low"},
+		{"medium priority", 7, 10, "Medium"},
+		{"high priority", 5, 10, "High"},
+		{"critical priority", 2, 10, "Critical"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getPriority(tt.score, tt.maxScore)
+			if got != tt.want {
+				t.Errorf("getPriority(%d, %d) = %q, want %q", tt.score, tt.maxScore, got, tt.want)
+			}
+		})
+	}
+}
+
+// Test getOverallStatus function
+func TestGetOverallStatus(t *testing.T) {
+	tests := []struct {
+		name  string
+		score int
+		want  string
+	}{
+		{"ready", 85, "🟢 Ready"},
+		{"good", 65, "🟡 Good"},
+		{"needs work", 45, "🟠 Needs Work"},
+		{"major issues", 25, "🔴 Major Issues"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getOverallStatus(tt.score)
+			if got != tt.want {
+				t.Errorf("getOverallStatus(%d) = %q, want %q", tt.score, got, tt.want)
+			}
+		})
+	}
+}
+
+// Test GenerateMarkdownReport with more edge cases
+func TestGenerateMarkdownReportEdgeCases(t *testing.T) {
+	// Test with low score (triggers different status)
+	sections := &SpecSections{
+		Title:        "Test PR-FAQ",
+		PressRelease: "Test press release content",
+		FAQs:         "Q: Test?\nA: Yes.",
+	}
+
+	lowScore := &PRScore{
+		OverallScore: 30,
+		QualityBreakdown: PRQualityBreakdown{
+			HeadlineScore: 2,
+			HookScore:     3,
+		},
+	}
+
+	report := GenerateMarkdownReport(sections, lowScore)
+	if report == "" {
+		t.Error("GenerateMarkdownReport with low score returned empty string")
+	}
+
+	// Test with empty sections but valid PRScore
+	emptySections := &SpecSections{}
+	emptyScore := &PRScore{OverallScore: 50}
+	emptyReport := GenerateMarkdownReport(emptySections, emptyScore)
+	if emptyReport == "" {
+		t.Error("GenerateMarkdownReport with empty sections returned empty string")
+	}
+}
+
+// Test analyzeStructure function with additional cases
+func TestAnalyzeStructureAdditional(t *testing.T) {
+	tests := []struct {
+		name         string
+		content      string
+		wantMinScore int
+	}{
+		{
+			name:         "empty content",
+			content:      "",
+			wantMinScore: 0,
+		},
+		{
+			name: "good structure with quotes",
+			content: `SEATTLE, WA - November 20, 2025 - Company announces new product.
+
+The product helps customers save time and money. It works by optimizing processes.
+
+"We reduced costs by 50%," said the CEO.
+
+Available starting next month at website.com.`,
+			wantMinScore: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			score, _, _ := analyzeStructure(tt.content)
+			if score < tt.wantMinScore {
+				t.Errorf("analyzeStructure() score = %d, want >= %d", score, tt.wantMinScore)
+			}
+		})
 	}
 }

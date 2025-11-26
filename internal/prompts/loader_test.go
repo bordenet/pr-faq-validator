@@ -232,6 +232,63 @@ parameters:
 	}
 }
 
+// Test RenderSystemPrompt with invalid template
+func TestRenderSystemPromptError(t *testing.T) {
+	tmpl := &PromptTemplate{
+		SystemPrompt: "Hello {{.invalid_syntax",
+	}
+
+	_, err := tmpl.RenderSystemPrompt(map[string]interface{}{})
+	if err == nil {
+		t.Error("expected error for invalid template syntax")
+	}
+}
+
+// Test RenderUserPrompt with invalid template
+func TestRenderUserPromptError(t *testing.T) {
+	tmpl := &PromptTemplate{
+		UserPromptTemplate: "Hello {{.invalid_syntax",
+	}
+
+	_, err := tmpl.RenderUserPrompt(map[string]interface{}{})
+	if err == nil {
+		t.Error("expected error for invalid template syntax")
+	}
+}
+
+// Test NewLoader with non-existent directory
+func TestNewLoaderNonExistentDir(t *testing.T) {
+	loader := NewLoader("/nonexistent/path/that/does/not/exist")
+	if loader == nil {
+		t.Fatal("expected non-nil loader even with non-existent path")
+	}
+	// The loader should still be created, but Load will fail
+	_, err := loader.Load("test.yaml")
+	if err == nil {
+		t.Error("expected error when loading from non-existent directory")
+	}
+}
+
+// Test Load with invalid YAML
+func TestLoadInvalidYAML(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Write invalid YAML
+	invalidYAML := `name: "test
+	invalid yaml content
+	missing closing quote`
+	promptFile := filepath.Join(tmpDir, "invalid.yaml")
+	if err := os.WriteFile(promptFile, []byte(invalidYAML), 0600); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	loader := NewLoader(tmpDir)
+	_, err := loader.Load("invalid.yaml")
+	if err == nil {
+		t.Error("expected error for invalid YAML")
+	}
+}
+
 // Helper function
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findSubstring(s, substr))

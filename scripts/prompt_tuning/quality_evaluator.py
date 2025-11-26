@@ -1,48 +1,47 @@
 """Quality evaluator for PR-FAQ content."""
 
 import json
-import asyncio
-from pathlib import Path
-from typing import Dict, List, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
-from prompt_tuning_config import PromptTuningConfig
-from llm_client import create_llm_client
+try:
+    from llm_client import create_llm_client
+    from prompt_tuning_config import PromptTuningConfig
+except ImportError:
+    from scripts.prompt_tuning.llm_client import create_llm_client
+    from scripts.prompt_tuning.prompt_tuning_config import PromptTuningConfig
 
 
 class QualityEvaluator:
     """Evaluates quality of generated PR-FAQ content."""
-    
+
     def __init__(self, config: PromptTuningConfig):
         self.config = config
         self.evaluator_client = create_llm_client(
-            provider=config.llm_provider,
-            model=config.evaluator_model,
-            mock=config.mock_mode
+            provider=config.llm_provider, model=config.evaluator_model, mock=config.mock_mode
         )
-    
+
     async def evaluate_results(self, simulation_results: Dict[str, Any]) -> Dict[str, Any]:
         """Evaluate simulation results."""
         test_case_results = simulation_results.get("test_case_results", [])
-        
+
         evaluation_results = {
             "iteration": simulation_results.get("iteration", 0),
             "timestamp": datetime.now().isoformat(),
             "project": self.config.project_name,
-            "evaluations": []
+            "evaluations": [],
         }
-        
+
         for test_result in test_case_results:
             evaluation = await self._evaluate_test_case(test_result)
             evaluation_results["evaluations"].append(evaluation)
-        
+
         # Calculate aggregate scores
-        evaluation_results["aggregate_scores"] = self._calculate_aggregate_scores(
-            evaluation_results["evaluations"]
-        )
-        
+        evaluation_results["aggregate_scores"] = self._calculate_aggregate_scores(evaluation_results["evaluations"])
+
         return evaluation_results
-    
+
     async def _evaluate_test_case(self, test_result: Dict[str, Any]) -> Dict[str, Any]:
         """Evaluate a single test case result using comprehensive LLM evaluation."""
         generated_content = test_result.get("generated_content", {})
@@ -56,7 +55,7 @@ class QualityEvaluator:
                 "overall_score": 0.0,
                 "press_release_score": {"score": 0, "clarity": 0, "structure": 0, "feedback": "No content generated"},
                 "faq_score": {"score": 0, "completeness": 0, "feedback": "No content generated"},
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
         # Comprehensive evaluation prompt (bloginator-style)
@@ -100,7 +99,7 @@ Return ONLY valid JSON matching this structure.
                 "structure_adherence": 3.5,
                 "feedback": "Evaluation parsing failed",
                 "strengths": [],
-                "improvements": []
+                "improvements": [],
             }
 
         # Convert 0-5 scores to 0-100 for compatibility
@@ -114,12 +113,12 @@ Return ONLY valid JSON matching this structure.
                 "score": evaluation.get("press_release_quality", 0) * 20,
                 "clarity": evaluation.get("clarity_score", 0) * 20,
                 "structure": evaluation.get("structure_adherence", 0) * 20,
-                "feedback": evaluation.get("feedback", "")
+                "feedback": evaluation.get("feedback", ""),
             },
             "faq_score": {
                 "score": evaluation.get("faq_completeness", 0) * 20,
                 "completeness": evaluation.get("faq_completeness", 0) * 20,
-                "feedback": evaluation.get("feedback", "")
+                "feedback": evaluation.get("feedback", ""),
             },
             "content_quality": evaluation.get("content_quality", {}),
             "slop_violations": evaluation.get("slop_violations", {}),
@@ -127,36 +126,29 @@ Return ONLY valid JSON matching this structure.
             "strengths": evaluation.get("strengths", []),
             "improvements": evaluation.get("improvements", []),
             "evolutionary_strategy": evaluation.get("evolutionary_strategy", {}),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
-    
 
-    
     def _calculate_aggregate_scores(self, evaluations: List[Dict[str, Any]]) -> Dict[str, float]:
         """Calculate aggregate scores across all test cases."""
         if not evaluations:
             return {"overall": 0.0, "press_release": 0.0, "faq": 0.0}
-        
+
         total_overall = sum(e.get("overall_score", 0) for e in evaluations)
         total_pr = sum(e.get("press_release_score", {}).get("score", 0) for e in evaluations)
         total_faq = sum(e.get("faq_score", {}).get("score", 0) for e in evaluations)
-        
+
         count = len(evaluations)
-        
-        return {
-            "overall": total_overall / count,
-            "press_release": total_pr / count,
-            "faq": total_faq / count
-        }
-    
+
+        return {"overall": total_overall / count, "press_release": total_pr / count, "faq": total_faq / count}
+
     def save_evaluation(self, evaluation_results: Dict[str, Any], iteration: int) -> Path:
         """Save evaluation results to file."""
         self.config.results_dir.mkdir(parents=True, exist_ok=True)
-        
-        output_file = self.config.results_dir / f"evaluation_iteration_{iteration:03d}.json"
-        
-        with open(output_file, 'w') as f:
-            json.dump(evaluation_results, f, indent=2)
-        
-        return output_file
 
+        output_file = self.config.results_dir / f"evaluation_iteration_{iteration:03d}.json"
+
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(evaluation_results, f, indent=2)
+
+        return output_file

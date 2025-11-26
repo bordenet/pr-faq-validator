@@ -8,37 +8,38 @@ appropriate responses in .pr-faq-validator/llm_responses/.
 Based on bloginator's auto_respond_llm.py implementation.
 """
 
-import json
-import time
-import random
+import argparse
 import hashlib
+import json
+import random
+import time
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict, Optional
 
 
 class AutoResponder:
     """Autonomous LLM response generator for prompt optimization experiments."""
 
-    def __init__(self, base_dir: Path = None):
+    def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = base_dir or Path.cwd() / ".pr-faq-validator"
         self.request_dir = self.base_dir / "llm_requests"
         self.response_dir = self.base_dir / "llm_responses"
-        self.processed_requests = set()
+        self.processed_requests: set[str] = set()
 
         # Ensure directories exist
         self.request_dir.mkdir(parents=True, exist_ok=True)
         self.response_dir.mkdir(parents=True, exist_ok=True)
 
-        print("="*80, flush=True)
+        print("=" * 80, flush=True)
         print("AUTO-RESPONDER VERSION 4.0 - Prompt-Aware Content Generation", flush=True)
-        print("="*80, flush=True)
+        print("=" * 80, flush=True)
 
     def detect_request_type(self, request_data: Dict[str, Any]) -> str:
         """Detect the type of request based on prompt content."""
-        print(f"    [DEBUG-V4] detect_request_type called - VERSION 4.0", flush=True)
+        print("    [DEBUG-V4] detect_request_type called - VERSION 4.0", flush=True)
         prompt = request_data.get("prompt", "")
-        system_prompt = (request_data.get("system_prompt") or "")
-        request_id = request_data.get('request_id', 'unknown')
+        system_prompt = request_data.get("system_prompt") or ""
+        request_id = request_data.get("request_id", "unknown")
 
         print(f"    [DEBUG-V4] Prompt first 150 chars: {repr(prompt[:150])}", flush=True)
         print(f"    [DEBUG-V4] Has 'Current prompt:': {'Current prompt:' in prompt}", flush=True)
@@ -48,19 +49,26 @@ class AutoResponder:
         # to avoid false matches in the embedded prompt content
         if "Current prompt:" in prompt:
             instruction_part = prompt.split("Current prompt:")[0]
-            print(f"    [DEBUG-V4] Split on 'Current prompt:' - instruction length: {len(instruction_part)}", flush=True)
+            print(
+                f"    [DEBUG-V4] Split on 'Current prompt:' - instruction length: {len(instruction_part)}", flush=True
+            )
         elif "current prompt:" in prompt:
             instruction_part = prompt.split("current prompt:")[0]
-            print(f"    [DEBUG-V4] Split on 'current prompt:' - instruction length: {len(instruction_part)}", flush=True)
+            print(
+                f"    [DEBUG-V4] Split on 'current prompt:' - instruction length: {len(instruction_part)}", flush=True
+            )
         else:
             instruction_part = prompt
-            print(f"    [DEBUG-V4] No split - using full prompt", flush=True)
+            print("    [DEBUG-V4] No split - using full prompt", flush=True)
 
         instruction_lower = instruction_part.lower()
-        prompt_lower = prompt.lower()
         system_lower = system_prompt.lower()
 
-        print(f"    [DEBUG] Request {request_id}: Prompt length = {len(prompt)}, instruction length = {len(instruction_part)}", flush=True)
+        print(
+            f"    [DEBUG] Request {request_id}: Prompt length = {len(prompt)}, "
+            f"instruction length = {len(instruction_part)}",
+            flush=True,
+        )
 
         # Mutation/optimization requests (check FIRST before evaluation)
         # These ask for improved prompts, not evaluations
@@ -69,22 +77,32 @@ class AutoResponder:
             "optimizing llm prompts",
             "improved prompt text",
             "provide only the improved prompt",
-            "expert at optimizing"
+            "expert at optimizing",
         ]
         found_mutation = [k for k in mutation_keywords if k in instruction_lower]
-        print(f"    [DEBUG] Request {request_id}: Checking mutation keywords in instruction... found: {found_mutation}", flush=True)
+        print(
+            f"    [DEBUG] Request {request_id}: Checking mutation keywords in instruction... found: {found_mutation}",
+            flush=True,
+        )
         if found_mutation:
             print(f"    [DEBUG] Request {request_id}: RETURNING mutation", flush=True)
             return "mutation"
 
         # Evaluation requests contain specific keywords
         eval_keywords = [
-            "evaluate", "score", "assessment",
-            "press_release_quality", "faq_completeness", "clarity_score"
+            "evaluate",
+            "score",
+            "assessment",
+            "press_release_quality",
+            "faq_completeness",
+            "clarity_score",
         ]
         found_eval = [k for k in eval_keywords if k in instruction_lower]
         if found_eval:
-            print(f"    [DEBUG] Request {request_id}: Found evaluation keywords in instruction: {found_eval[:2]}", flush=True)
+            print(
+                f"    [DEBUG] Request {request_id}: Found evaluation keywords in instruction: {found_eval[:2]}",
+                flush=True,
+            )
             return "evaluation"
 
         # Press release generation (check instruction part only)
@@ -128,7 +146,10 @@ class AutoResponder:
         # Cap at 1.0
         quality_score = min(quality_score, 1.0)
 
-        print(f"    [DEBUG-V4-PR] Request {request_id}: quality_score={quality_score:.2f}, has_evidence={has_evidence}, has_specificity={has_specificity}, has_metrics={has_metrics}")
+        print(
+            f"    [DEBUG-V4-PR] Request {request_id}: quality_score={quality_score:.2f}, "
+            f"has_evidence={has_evidence}, has_specificity={has_specificity}, has_metrics={has_metrics}"
+        )
 
         # Generate content based on quality score
         variation = int(quality_score * 10) % 3  # 0, 1, or 2
@@ -138,21 +159,46 @@ class AutoResponder:
             # Highest quality PR with strong evidence and specific metrics
             if variation == 0:
                 metrics = f"{int(45 + quality_score * 10)}% improvement"
-                customer_quote = '"This solution reduced our processing time from 8 hours to 3.8 hours per day, saving our team $147,000 annually," said Sarah Chen, Operations Director at TechCorp. "The ROI was evident within the first quarter."'
-                specifics = "The platform processes 18,000 transactions per hour with 99.98% accuracy, handling peak loads of 65,000 concurrent users across 12 geographic regions."
+                customer_quote = (
+                    '"This solution reduced our processing time from 8 hours to 3.8 hours '
+                    'per day, saving our team $147,000 annually," said Sarah Chen, '
+                    'Operations Director at TechCorp. "The ROI was evident within the first quarter."'
+                )
+                specifics = (
+                    "The platform processes 18,000 transactions per hour with 99.98% accuracy, "
+                    "handling peak loads of 65,000 concurrent users across 12 geographic regions."
+                )
             elif variation == 1:
                 metrics = f"{int(43 + quality_score * 10)}% improvement"
-                customer_quote = '"We achieved a 4.2-hour reduction in daily processing time, translating to $127,000 in annual savings," said Michael Rodriguez, VP of Operations.'
-                specifics = "The platform processes 15,000 transactions per hour with 99.97% accuracy, handling peak loads of 50,000 concurrent users."
+                customer_quote = (
+                    '"We achieved a 4.2-hour reduction in daily processing time, '
+                    'translating to $127,000 in annual savings," said Michael Rodriguez, VP of Operations.'
+                )
+                specifics = (
+                    "The platform processes 15,000 transactions per hour with 99.97% accuracy, "
+                    "handling peak loads of 50,000 concurrent users."
+                )
             else:
                 metrics = f"{int(42 + quality_score * 10)}% improvement"
-                customer_quote = '"Processing time dropped from 8 to 4.5 hours daily, saving $115,000 per year," said Jennifer Park, Director of Engineering.'
-                specifics = "The system handles 14,000 transactions per hour with 99.95% accuracy and supports 45,000 concurrent users."
+                customer_quote = (
+                    '"Processing time dropped from 8 to 4.5 hours daily, saving $115,000 per year," '
+                    'said Jennifer Park, Director of Engineering.'
+                )
+                specifics = (
+                    "The system handles 14,000 transactions per hour with 99.95% accuracy "
+                    "and supports 45,000 concurrent users."
+                )
         elif quality_score >= 0.6:
             # Good PR with metrics but less evidence
             metrics = f"{int(30 + quality_score * 15)}% improvement"
-            customer_quote = '"We\'ve seen measurable productivity gains in our workflows," said Product Leader. "The metrics speak for themselves."'
-            specifics = "The solution integrates with existing tools and provides real-time analytics with sub-second response times."
+            customer_quote = (
+                '"We\'ve seen measurable productivity gains in our workflows," '
+                'said Product Leader. "The metrics speak for themselves."'
+            )
+            specifics = (
+                "The solution integrates with existing tools and provides "
+                "real-time analytics with sub-second response times."
+            )
         elif quality_score >= 0.4:
             # Moderate PR with some customer focus
             metrics = f"{int(25 + quality_score * 15)}% improvement"
@@ -242,7 +288,9 @@ A: The solution pays for itself within 6 months through efficiency gains. Organi
 
 ## Q: What specific problem does this solve?
 
-A: This solution addresses the core challenge of inefficiency in current workflows by providing automated, intelligent assistance. Teams spend an average of {comprehensive_detail} on manual tasks that can be automated, and this solution reduces that by {reduction_detail}.
+A: This solution addresses the core challenge of inefficiency in current workflows by providing \
+automated, intelligent assistance. Teams spend an average of {comprehensive_detail} on manual \
+tasks that can be automated, and this solution reduces that by {reduction_detail}.
 
 ## Q: Who is this designed for?
 
@@ -286,17 +334,18 @@ A: The platform offers native integrations with popular tools (Jira, GitHub, Sla
         prompt = request_data.get("prompt", "")
 
         # Extract content quality indicators from the PR-FAQ content
-        import re
+        # pylint: disable=import-outside-toplevel
+        import re  # noqa: E402
 
         # Extract improvement percentage
-        percentage_match = re.search(r'(\d+)% improvement', prompt)
+        percentage_match = re.search(r"(\d+)% improvement", prompt)
         improvement_pct = int(percentage_match.group(1)) if percentage_match else 30
 
         # Check for quantitative metrics in customer quotes
-        has_dollar_amount = bool(re.search(r'\$[\d,]+', prompt))
-        has_time_savings = bool(re.search(r'\d+\.?\d* hours?', prompt))
-        has_specific_metrics = bool(re.search(r'\d+,\d+ (transactions|users|concurrent)', prompt))
-        has_accuracy = bool(re.search(r'\d+\.\d+% accuracy', prompt))
+        has_dollar_amount = bool(re.search(r"\$[\d,]+", prompt))
+        has_time_savings = bool(re.search(r"\d+\.?\d* hours?", prompt))
+        has_specific_metrics = bool(re.search(r"\d+,\d+ (transactions|users|concurrent)", prompt))
+        has_accuracy = bool(re.search(r"\d+\.\d+% accuracy", prompt))
 
         # Calculate base score from content quality (3.5-4.8 range)
         # Higher improvement percentage = higher score
@@ -320,7 +369,11 @@ A: The platform offers native integrations with popular tools (Jira, GitHub, Sla
         variation = random.uniform(-0.05, 0.05)
         base_score += variation
 
-        print(f"    [DEBUG-V4-EVAL] Request {request_id}: improvement={improvement_pct}%, $={has_dollar_amount}, time={has_time_savings}, metrics={has_specific_metrics}, accuracy={has_accuracy}, base_score={base_score:.2f}")
+        print(
+            f"    [DEBUG-V4-EVAL] Request {request_id}: improvement={improvement_pct}%, "
+            f"$={has_dollar_amount}, time={has_time_savings}, metrics={has_specific_metrics}, "
+            f"accuracy={has_accuracy}, base_score={base_score:.2f}"
+        )
 
         evaluation = {
             "overall_score": round(base_score, 2),
@@ -332,36 +385,31 @@ A: The platform offers native integrations with popular tools (Jira, GitHub, Sla
                 "clarity": round(base_score + random.uniform(-0.2, 0.2), 2),
                 "depth": round(base_score + random.uniform(-0.1, 0.3), 2),
                 "nuance": round(base_score + random.uniform(-0.3, 0.2), 2),
-                "specificity": round(base_score + random.uniform(-0.4, 0.1), 2)
+                "specificity": round(base_score + random.uniform(-0.4, 0.1), 2),
             },
-            "slop_violations": {
-                "critical": [],
-                "high": [],
-                "medium": [],
-                "low": []
-            },
+            "slop_violations": {"critical": [], "high": [], "medium": [], "low": []},
             "voice_analysis": {
                 "authenticity_score": round(base_score, 2),
                 "strengths": [
                     "Direct, concrete language",
                     "Specific metrics and examples",
-                    "Clear problem-solution framing"
+                    "Clear problem-solution framing",
                 ],
-                "concerns": []
+                "concerns": [],
             },
             "feedback": f"Score: {base_score:.2f}/5.0. Content demonstrates good clarity and practical focus. "
-                       f"Could benefit from more specific examples and quantitative data.",
+            f"Could benefit from more specific examples and quantitative data.",
             "strengths": [
                 "Clear problem statement",
                 "Well-structured content",
                 "Comprehensive FAQ coverage",
-                "Specific metrics included"
+                "Specific metrics included",
             ],
             "improvements": [
                 "Add more concrete customer quotes",
                 "Include specific technical details",
                 "Expand on implementation timeline",
-                "Provide more quantitative evidence"
+                "Provide more quantitative evidence",
             ],
             "evolutionary_strategy": {
                 "prompt_to_modify": random.choice(["press_release", "faq", "refinement"]),
@@ -370,18 +418,18 @@ A: The platform offers native integrations with popular tools (Jira, GitHub, Sla
                         "section": "introduction",
                         "current_issue": "Lacks specific quantitative metrics",
                         "proposed_change": "Add concrete numbers and percentages to claims",
-                        "rationale": "Specificity scores are lowest dimension"
+                        "rationale": "Specificity scores are lowest dimension",
                     },
                     {
                         "section": "benefits",
                         "current_issue": "Generic benefit statements",
                         "proposed_change": "Include customer quotes with measurable outcomes",
-                        "rationale": "Voice authenticity needs concrete evidence"
-                    }
+                        "rationale": "Voice authenticity needs concrete evidence",
+                    },
                 ],
                 "priority": "high",
-                "expected_impact": "Improve specificity score by 0.3-0.5 points"
-            }
+                "expected_impact": "Improve specificity score by 0.3-0.5 points",
+            },
         }
 
         return json.dumps(evaluation, indent=2)
@@ -389,25 +437,15 @@ A: The platform offers native integrations with popular tools (Jira, GitHub, Sla
     def generate_mutation(self, request_data: Dict[str, Any]) -> str:
         """Generate an improved/mutated version of a prompt."""
         request_id = request_data.get("request_id", 0)
-        prompt = request_data.get("prompt", "")
 
-        # Extract the current prompt from the mutation request
-        # It's typically after "Current prompt:" in the request
-        current_prompt_marker = "Current prompt:"
-        if current_prompt_marker in prompt:
-            parts = prompt.split(current_prompt_marker, 1)
-            if len(parts) > 1:
-                # Extract everything between "Current prompt:" and "Based on iteration"
-                current_prompt_section = parts[1].split("Based on iteration")[0].strip()
-            else:
-                current_prompt_section = ""
-        else:
-            current_prompt_section = ""
+        # Note: We could extract the current prompt from the mutation request
+        # but we use predefined variations instead for consistency
 
         # Generate variations based on request_id for diversity
         variations = [
             # Variation 1: Add more specificity requirements
-            """Generate a comprehensive PR-FAQ document following Amazon's format with strong emphasis on quantitative specificity and measurable outcomes.
+            """Generate a comprehensive PR-FAQ document following Amazon's format \
+with strong emphasis on quantitative specificity and measurable outcomes.
 
 Project: {projectName}
 Problem: {problemDescription}
@@ -425,7 +463,8 @@ CRITICAL REQUIREMENTS:
 2. AUTHENTIC CUSTOMER EVIDENCE (REQUIRED)
    - Include 2-3 customer quotes with quantitative, measurable outcomes
    - Format: "Specific metric-driven quote" - Full Name, Title, Company
-   - Example: "We reduced deployment time from 4 hours to 15 minutes, saving 20 hours per week" - Jane Smith, CTO, TechCorp
+   - Example: "We reduced deployment time from 4 hours to 15 minutes, \
+saving 20 hours per week" - Jane Smith, CTO, TechCorp
    - Each quote must contain at least one specific number or percentage
 
 3. TECHNICAL DEPTH AND MECHANISM
@@ -468,10 +507,12 @@ QUALITY STANDARDS:
 - Ensure perfect consistency between PR and FAQ
 - Include real-world examples and use cases
 
-Create a press release and FAQ that clearly articulates the customer problem, solution, and benefits with maximum specificity, measurable outcomes, and quantitative evidence.""",
-
+Create a press release and FAQ that clearly articulates the customer problem, \
+solution, and benefits with maximum specificity, measurable outcomes, \
+and quantitative evidence.""",
             # Variation 2: Emphasize customer-centricity
-            """Generate a customer-focused PR-FAQ document following Amazon's working backwards methodology with emphasis on measurable customer outcomes.
+            """Generate a customer-focused PR-FAQ document following Amazon's \
+working backwards methodology with emphasis on measurable customer outcomes.
 
 Project: {projectName}
 Problem: {problemDescription}
@@ -531,10 +572,11 @@ QUALITY REQUIREMENTS:
 - Technical depth where appropriate
 - Perfect PR-FAQ consistency
 
-Generate a compelling PR-FAQ that demonstrates clear customer value with quantitative evidence and measurable outcomes.""",
-
+Generate a compelling PR-FAQ that demonstrates clear customer value \
+with quantitative evidence and measurable outcomes.""",
             # Variation 3: Focus on credibility and evidence
-            """Generate an evidence-based PR-FAQ document following Amazon's format with emphasis on credibility, specificity, and quantitative validation.
+            """Generate an evidence-based PR-FAQ document following Amazon's format \
+with emphasis on credibility, specificity, and quantitative validation.
 
 Project: {projectName}
 Problem: {problemDescription}
@@ -553,7 +595,8 @@ EVIDENCE-BASED REQUIREMENTS:
    - Include 2-3 detailed customer quotes with full attribution
    - Each quote must contain specific, verifiable metrics
    - Format: "Detailed outcome with numbers" - Full Name, Title, Company Name
-   - Example: "Our team deployed 40% faster, cutting release cycles from 10 days to 6 days" - Michael Chen, Director of Engineering, DataFlow Inc.
+   - Example: "Our team deployed 40% faster, cutting release cycles from 10 days to 6 days" \
+- Michael Chen, Director of Engineering, DataFlow Inc.
 
 3. TECHNICAL SUBSTANCE
    - Explain the underlying mechanism and how it works
@@ -580,7 +623,8 @@ PRESS RELEASE COMPONENTS:
 
 FAQ REQUIREMENTS:
 - Minimum 7, maximum 15 questions
-- Priority order: problem (quantified), audience (specific), mechanism (detailed), benefits (measured), availability (dated), cost (transparent), support (comprehensive)
+- Priority order: problem (quantified), audience (specific), mechanism (detailed), \
+benefits (measured), availability (dated), cost (transparent), support (comprehensive)
 - Every answer must be specific and detailed (2-4 sentences)
 - Include numbers and metrics wherever applicable
 - Address potential objections with evidence
@@ -594,7 +638,8 @@ CREDIBILITY STANDARDS:
 - Real-world examples and use cases
 - Verifiable metrics and outcomes
 
-Create a credible, evidence-based PR-FAQ that builds trust through specificity, quantitative validation, and measurable customer outcomes."""
+Create a credible, evidence-based PR-FAQ that builds trust through specificity, \
+quantitative validation, and measurable customer outcomes.""",
         ]
 
         # Select variation based on request_id
@@ -603,7 +648,7 @@ Create a credible, evidence-based PR-FAQ that builds trust through specificity, 
 
     def generate_response(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """Generate appropriate response based on request type."""
-        request_id = request_data.get('request_id', 'unknown')
+        request_id = request_data.get("request_id", "unknown")
         request_type = self.detect_request_type(request_data)
 
         print(f"    [DEBUG] Request {request_id}: Detected type = {request_type}", flush=True)
@@ -634,12 +679,12 @@ Create a credible, evidence-based PR-FAQ that builds trust through specificity, 
             "content": content,
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
-            "finish_reason": "stop"
+            "finish_reason": "stop",
         }
 
     def process_requests(self, continuous: bool = False, sleep_interval: float = 1.0):
         """Process pending requests."""
-        print(f"🔧 Auto-responder VERSION 3.0 - Instruction-only keyword detection", flush=True)
+        print("🔧 Auto-responder VERSION 3.0 - Instruction-only keyword detection", flush=True)
         print(f"Auto-responder monitoring: {self.request_dir}", flush=True)
         print(f"Responses will be written to: {self.response_dir}", flush=True)
 
@@ -657,7 +702,7 @@ Create a credible, evidence-based PR-FAQ that builds trust through specificity, 
             for request_file in new_requests:
                 try:
                     # Read request
-                    with open(request_file, 'r') as f:
+                    with open(request_file, "r", encoding="utf-8") as f:
                         request_data = json.load(f)
 
                     request_id = request_data.get("request_id")
@@ -670,7 +715,7 @@ Create a credible, evidence-based PR-FAQ that builds trust through specificity, 
 
                     # Write response
                     response_file = self.response_dir / f"response_{request_id:04d}.json"
-                    with open(response_file, 'w') as f:
+                    with open(response_file, "w", encoding="utf-8") as f:
                         json.dump(response_data, f, indent=2)
 
                     print(f"  ✓ Response written: {response_file.name}", flush=True)
@@ -678,7 +723,7 @@ Create a credible, evidence-based PR-FAQ that builds trust through specificity, 
                     # Mark as processed
                     self.processed_requests.add(request_file.name)
 
-                except Exception as e:
+                except (OSError, json.JSONDecodeError, KeyError) as e:
                     print(f"  ✗ Error processing {request_file.name}: {e}", flush=True)
 
             if not continuous:
@@ -689,8 +734,6 @@ Create a credible, evidence-based PR-FAQ that builds trust through specificity, 
 
 def main():
     """Main entry point."""
-    import argparse
-
     parser = argparse.ArgumentParser(description="Auto-responder for LLM requests")
     parser.add_argument("--continuous", action="store_true", help="Run continuously")
     parser.add_argument("--interval", type=float, default=1.0, help="Sleep interval in seconds")
@@ -708,5 +751,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

@@ -1,48 +1,46 @@
 """LLM client with mock support for PR-FAQ Validator prompt tuning."""
 
-import os
-import json
-import hashlib
-import time
 import asyncio
-from pathlib import Path
-from typing import Optional, Dict, Any
+import hashlib
+import json
+import os
+import time
 from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Optional
 
 
 class LLMClient(ABC):
     """Abstract base class for LLM clients."""
-    
+
     @abstractmethod
     async def generate(self, prompt: str, **kwargs) -> str:
         """Generate text from prompt."""
-        pass
 
 
 class MockLLMClient(LLMClient):
     """Mock LLM client for testing without API keys."""
-    
+
     def __init__(self, model: str = "mock"):
         self.model = model
         self.call_count = 0
-    
+
     async def generate(self, prompt: str, **kwargs) -> str:
         """Generate deterministic mock response based on prompt hash."""
         self.call_count += 1
-        
+
         # Create deterministic response based on prompt content
         prompt_hash = hashlib.md5(prompt.encode()).hexdigest()[:8]
-        
+
         # Detect what kind of response is needed based on prompt keywords
         if "press release" in prompt.lower():
             return self._generate_mock_press_release(prompt_hash)
-        elif "faq" in prompt.lower() or "frequently asked" in prompt.lower():
+        if "faq" in prompt.lower() or "frequently asked" in prompt.lower():
             return self._generate_mock_faq(prompt_hash)
-        elif "evaluate" in prompt.lower() or "score" in prompt.lower():
+        if "evaluate" in prompt.lower() or "score" in prompt.lower():
             return self._generate_mock_evaluation(prompt_hash)
-        else:
-            return self._generate_mock_generic(prompt_hash)
-    
+        return self._generate_mock_generic(prompt_hash)
+
     def _generate_mock_press_release(self, seed: str) -> str:
         """Generate mock press release."""
         return f"""# Mock Press Release ({seed})
@@ -67,7 +65,7 @@ For more information, visit our website or contact our press team.
 ### About the Company
 We are committed to innovation and customer success.
 """
-    
+
     def _generate_mock_faq(self, seed: str) -> str:
         """Generate mock FAQ."""
         return f"""# Frequently Asked Questions ({seed})
@@ -93,31 +91,26 @@ A: Pricing will be announced closer to general availability, with options for di
 ## Q: What support is available?
 A: Comprehensive documentation, tutorials, and dedicated support channels will be provided.
 """
-    
+
     def _generate_mock_evaluation(self, seed: str) -> str:
         """Generate mock evaluation score."""
         # Use seed to generate consistent but varied scores
         score_base = int(seed[:2], 16) % 30 + 70  # Score between 70-100
-        
-        return json.dumps({
-            "overall_score": score_base,
-            "press_release_quality": score_base + 5,
-            "faq_completeness": score_base - 3,
-            "clarity_score": score_base + 2,
-            "structure_adherence": score_base,
-            "feedback": f"Mock evaluation with seed {seed}. Good structure and clarity.",
-            "strengths": [
-                "Clear problem statement",
-                "Well-structured content",
-                "Comprehensive FAQ coverage"
-            ],
-            "improvements": [
-                "Add more specific metrics",
-                "Include customer quotes",
-                "Expand on technical details"
-            ]
-        }, indent=2)
-    
+
+        return json.dumps(
+            {
+                "overall_score": score_base,
+                "press_release_quality": score_base + 5,
+                "faq_completeness": score_base - 3,
+                "clarity_score": score_base + 2,
+                "structure_adherence": score_base,
+                "feedback": f"Mock evaluation with seed {seed}. Good structure and clarity.",
+                "strengths": ["Clear problem statement", "Well-structured content", "Comprehensive FAQ coverage"],
+                "improvements": ["Add more specific metrics", "Include customer quotes", "Expand on technical details"],
+            },
+            indent=2,
+        )
+
     def _generate_mock_generic(self, seed: str) -> str:
         """Generate generic mock response."""
         return f"Mock LLM response (seed: {seed}). This is a simulated output for testing purposes."
@@ -126,6 +119,7 @@ A: Comprehensive documentation, tutorials, and dedicated support channels will b
 # Global request counter shared across all AssistantLLMClient instances
 # to prevent request ID collisions
 _global_request_counter = 0
+
 
 class AssistantLLMClient(LLMClient):
     """
@@ -164,12 +158,12 @@ class AssistantLLMClient(LLMClient):
             "max_tokens": kwargs.get("max_tokens", 3000),
             "system_prompt": kwargs.get("system_prompt"),
             "prompt": prompt,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
         # Write request file
         request_file = self.request_dir / f"request_{request_id:04d}.json"
-        with open(request_file, 'w') as f:
+        with open(request_file, "w", encoding="utf-8") as f:
             json.dump(request_data, f, indent=2)
 
         # Poll for response
@@ -178,7 +172,7 @@ class AssistantLLMClient(LLMClient):
 
         while time.time() - start_time < self.timeout:
             if response_file.exists():
-                with open(response_file, 'r') as f:
+                with open(response_file, "r", encoding="utf-8") as f:
                     response_data = json.load(f)
                 return response_data["content"]
 
@@ -203,9 +197,11 @@ class AnthropicClient(LLMClient):
     async def generate(self, prompt: str, **kwargs) -> str:
         """Generate text using Anthropic API."""
         try:
-            import anthropic
-        except ImportError:
-            raise ImportError("anthropic package not installed. Run: pip install anthropic")
+            import anthropic  # pylint: disable=import-outside-toplevel
+        except ImportError as exc:
+            raise ImportError(
+                "anthropic package not installed. Run: pip install anthropic"
+            ) from exc
 
         client = anthropic.AsyncAnthropic(api_key=self.api_key)
 
@@ -216,13 +212,15 @@ class AnthropicClient(LLMClient):
             model=self.model,
             max_tokens=max_tokens,
             temperature=temperature,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
         )
 
         return message.content[0].text
 
 
-def create_llm_client(provider: str = "anthropic", model: str = "claude-3-5-sonnet-20241022", mock: bool = False) -> LLMClient:
+def create_llm_client(
+    provider: str = "anthropic", model: str = "claude-3-5-sonnet-20241022", mock: bool = False
+) -> LLMClient:
     """Factory function to create LLM client."""
     if mock or os.getenv("AI_AGENT_MOCK_MODE", "false").lower() == "true":
         return MockLLMClient(model=model)
@@ -233,6 +231,5 @@ def create_llm_client(provider: str = "anthropic", model: str = "claude-3-5-sonn
 
     if provider == "anthropic":
         return AnthropicClient(model=model)
-    else:
-        raise ValueError(f"Unsupported LLM provider: {provider}")
 
+    raise ValueError(f"Unsupported LLM provider: {provider}")

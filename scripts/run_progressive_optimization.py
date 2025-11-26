@@ -6,12 +6,13 @@ Each round starts from the best prompt of the previous round,
 allowing for progressive improvement over multiple experiments.
 """
 
+import argparse
 import json
 import subprocess
 import sys
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 class ProgressiveOptimizer:
@@ -23,9 +24,9 @@ class ProgressiveOptimizer:
         self.iterations_per_round = iterations_per_round
         self.results_dir = Path.cwd() / f"prompt_tuning_results_{project}"
         self.prompts_dir = Path.cwd() / "prompts"
-        self.round_history = []
+        self.round_history: list[Dict[str, Any]] = []
 
-    def run_single_round(self, round_num: int) -> Dict[str, Any]:
+    def run_single_round(self, round_num: int) -> Optional[Dict[str, Any]]:
         """Run a single optimization round."""
         print(f"\n{'='*80}")
         print(f"ROUND {round_num}/{self.rounds}")
@@ -36,12 +37,15 @@ class ProgressiveOptimizer:
             [
                 sys.executable,
                 "scripts/run_autonomous_experiment.py",
-                "--project", self.project,
-                "--iterations", str(self.iterations_per_round)
+                "--project",
+                self.project,
+                "--iterations",
+                str(self.iterations_per_round),
             ],
             capture_output=True,
             text=True,
-            timeout=300
+            timeout=300,
+            check=False,
         )
 
         if result.returncode != 0:
@@ -55,7 +59,7 @@ class ProgressiveOptimizer:
             print(f"❌ Results file not found: {results_file}")
             return None
 
-        with open(results_file, 'r') as f:
+        with open(results_file, "r", encoding="utf-8") as f:
             round_results = json.load(f)
 
         round_data = {
@@ -99,38 +103,43 @@ class ProgressiveOptimizer:
             print(f"   Baseline: {round_data['baseline_score']:.2f}")
             print(f"   Final:    {round_data['final_score']:.2f}")
             print(f"   Change:   {round_data['improvement']:+.2f}")
-            print(f"   Converged: {'Yes' if round_data['converged'] else 'No'} "
-                  f"(iteration {round_data['convergence_iteration']})")
+            print(
+                f"   Converged: {'Yes' if round_data['converged'] else 'No'} "
+                f"(iteration {round_data['convergence_iteration']})"
+            )
 
         # Generate final report
-        return self.generate_final_report(initial_score, final_score)
+        return self.generate_final_report(initial_score or 0.0, final_score or 0.0)
 
     def generate_final_report(self, initial_score: float, final_score: float) -> Dict[str, Any]:
         """Generate comprehensive report of all rounds."""
-        print(f"\n{'='*80}")
-        print(f"PROGRESSIVE OPTIMIZATION COMPLETE")
-        print(f"{'='*80}\n")
+        separator = "=" * 80
+        print(f"\n{separator}")
+        print("PROGRESSIVE OPTIMIZATION COMPLETE")
+        print(f"{separator}\n")
 
         total_improvement = final_score - initial_score if initial_score and final_score else 0
         improvement_pct = (total_improvement / initial_score * 100) if initial_score else 0
 
-        print(f"📈 OVERALL RESULTS:")
+        print("📈 OVERALL RESULTS:")
         print(f"   Initial Score (Round 1 baseline): {initial_score:.2f}")
         print(f"   Final Score (Round {self.rounds}):   {final_score:.2f}")
         print(f"   Total Improvement:                {total_improvement:+.2f} ({improvement_pct:+.2f}%)")
         print(f"   Rounds Completed:                 {len(self.round_history)}/{self.rounds}")
 
-        print(f"\n📊 ROUND-BY-ROUND BREAKDOWN:")
+        print("\n📊 ROUND-BY-ROUND BREAKDOWN:")
         print(f"   {'Round':<8} {'Baseline':<10} {'Final':<10} {'Change':<10} {'Converged':<12}")
         print(f"   {'-'*60}")
 
         for round_data in self.round_history:
-            converged_str = f"Yes (iter {round_data['convergence_iteration']})" if round_data['converged'] else "No"
-            print(f"   {round_data['round']:<8} "
-                  f"{round_data['baseline_score']:<10.2f} "
-                  f"{round_data['final_score']:<10.2f} "
-                  f"{round_data['improvement']:<+10.2f} "
-                  f"{converged_str:<12}")
+            converged_str = f"Yes (iter {round_data['convergence_iteration']})" if round_data["converged"] else "No"
+            print(
+                f"   {round_data['round']:<8} "
+                f"{round_data['baseline_score']:<10.2f} "
+                f"{round_data['final_score']:<10.2f} "
+                f"{round_data['improvement']:<+10.2f} "
+                f"{converged_str:<12}"
+            )
 
         # Save report
         report = {
@@ -142,11 +151,11 @@ class ProgressiveOptimizer:
             "final_score": final_score,
             "total_improvement": total_improvement,
             "improvement_percentage": improvement_pct,
-            "round_history": self.round_history
+            "round_history": self.round_history,
         }
 
         report_file = Path.cwd() / f"progressive_optimization_report_{int(datetime.now().timestamp())}.json"
-        with open(report_file, 'w') as f:
+        with open(report_file, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
 
         print(f"\n✅ Report saved: {report_file}")
@@ -156,8 +165,6 @@ class ProgressiveOptimizer:
 
 def main():
     """Main entry point."""
-    import argparse
-
     parser = argparse.ArgumentParser(description="Run progressive optimization rounds")
     parser.add_argument("--project", default="pr-faq-validator", help="Project name")
     parser.add_argument("--rounds", type=int, default=20, help="Number of rounds")
@@ -165,15 +172,10 @@ def main():
 
     args = parser.parse_args()
 
-    optimizer = ProgressiveOptimizer(
-        project=args.project,
-        rounds=args.rounds,
-        iterations_per_round=args.iterations
-    )
+    optimizer = ProgressiveOptimizer(project=args.project, rounds=args.rounds, iterations_per_round=args.iterations)
 
     optimizer.run_progressive_optimization()
 
 
 if __name__ == "__main__":
     main()
-
