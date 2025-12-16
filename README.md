@@ -7,6 +7,7 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/bordenet/pr-faq-validator)](https://github.com/bordenet/pr-faq-validator/blob/main/go.mod)
 [![License](https://img.shields.io/github/license/bordenet/pr-faq-validator)](https://github.com/bordenet/pr-faq-validator/blob/main/LICENSE)
 [![Release](https://img.shields.io/github/v/release/bordenet/pr-faq-validator)](https://github.com/bordenet/pr-faq-validator/releases)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen?logo=dependabot)](https://github.com/bordenet/pr-faq-validator/security/dependabot)
 
 A CLI tool to analyze and score [PR-FAQ documents](https://github.com/bordenet/Engineering_Culture/blob/main/SDLC/The_PR-FAQ.md) using deterministic quality metrics.
 
@@ -107,6 +108,7 @@ pr-faq-validator maintains **76.3% test coverage** with comprehensive testing of
 [![Coverage Grid](https://codecov.io/gh/bordenet/pr-faq-validator/graphs/tree.svg)](https://codecov.io/gh/bordenet/pr-faq-validator)
 
 **What this means:**
+
 - **Green**: Well-tested code (>80% coverage)
 - **Yellow**: Moderate coverage (60-80%)
 - **Red**: Needs more tests (<60%)
